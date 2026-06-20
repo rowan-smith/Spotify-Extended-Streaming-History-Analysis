@@ -1,1 +1,5 @@
 /MyData/
+/web/node_modules/
+/web/dist/
+.venv/
+.idea/

@@ -1,0 +1,73 @@
+export const ASSUMPTIONS_INTRO =
+  'This analysis is built on explicit assumptions about Spotify Extended Streaming History data. Understanding them helps interpret the charts and stats.';
+
+export interface Assumption {
+  title: string;
+  body: string;
+}
+
+export const ASSUMPTIONS: Assumption[] = [
+  {
+    title: 'One row = one streaming event',
+    body: 'Each JSON record is counted as a single play/listen, regardless of how long you actually listened.',
+  },
+  {
+    title: 'Music only',
+    body: 'Rows without a track name, plus podcast episodes and audiobooks, are excluded so rankings reflect songs.',
+  },
+  {
+    title: 'No minimum play duration',
+    body: 'Very short plays and skips are included in listen counts unless a chart specifically filters on skipped or reason_end.',
+  },
+  {
+    title: 'Timestamps are UTC',
+    body: 'Spotify exports ts in UTC. Hour-of-day and calendar charts use that timestamp as-is, not your local timezone.',
+  },
+  {
+    title: 'Duplicate exports are deduplicated',
+    body: 'If multiple JSON files overlap, rows with the same ts, track name, artist name, and ms_played are kept once.',
+  },
+  {
+    title: '"Listen count" = row count',
+    body: 'Grouped counts reflect streaming events, not unique songs or album plays.',
+  },
+  {
+    title: '"Playtime" = sum of ms_played',
+    body: 'Total listening time is the sum of milliseconds reported by Spotify for each event.',
+  },
+  {
+    title: 'Track identity = (track name, artist name)',
+    body: 'Same song title by different artists, or metadata changes over time, appear as separate entries.',
+  },
+  {
+    title: '"Most listened" for a period',
+    body: 'The track with the highest metric for that chart (play count or total playtime). Ties are broken by sort order.',
+  },
+  {
+    title: 'Completed listen',
+    body: "reason_end == 'trackdone' indicates the track finished playing, not necessarily that you listened intentionally start to finish.",
+  },
+  {
+    title: 'Skipped track',
+    body: 'skipped == true in the export.',
+  },
+  {
+    title: 'Listening session',
+    body: 'Consecutive plays with no gap longer than 30 minutes between them.',
+  },
+  {
+    title: 'Month/day seasonality charts',
+    body: 'All Januaries, all 1sts of the month, etc. are pooled across every year in your history. They show seasonal patterns, not a running cumulative total over time.',
+  },
+];
+
+export const PRIVACY_POINTS = [
+  'This site has no backend server and no database.',
+  'Your JSON files are read locally in your browser using standard file APIs.',
+  'Parsed data lives only in memory for as long as this tab stays open.',
+  'When you close the tab, navigate away, or refresh the page, that in-memory data is discarded.',
+  'Nothing is uploaded, logged, or stored by this project.',
+];
+
+export const UPLOAD_DISCLAIMER =
+  'I understand that my Spotify JSON files will be processed locally in my browser, held only in memory while this page is open, and discarded when I leave. I am selecting files I am comfortable viewing on this device.';

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Spotify-Extended-Streaming-History-Analysis/',
+  base: './',
   build: {
     outDir: '../docs',
     emptyOutDir: true,

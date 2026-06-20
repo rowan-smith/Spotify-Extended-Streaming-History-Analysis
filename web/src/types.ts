@@ -1,14 +1,25 @@
 export interface RawRecord {
-  ts: string;
-  ms_played: number;
+  ts?: string;
+  endTime?: string;
+  ms_played?: number;
+  msPlayed?: number;
   master_metadata_track_name?: string | null;
   master_metadata_album_artist_name?: string | null;
   master_metadata_album_album_name?: string | null;
+  trackName?: string | null;
+  artistName?: string | null;
+  albumName?: string | null;
   episode_name?: string | null;
+  episode_name_show?: string | null;
   audiobook_title?: string | null;
+  audiobook_uri?: string | null;
   reason_end?: string | null;
+  reason_end_reason?: string | null;
   skipped?: boolean | string | null;
+  episode_show_name?: string | null;
 }
+
+export type ContentKind = 'music' | 'podcast' | 'audiobook';
 
 export interface StreamRecord {
   ts: Date;
@@ -18,6 +29,7 @@ export interface StreamRecord {
   msPlayed: number;
   skipped: boolean;
   reasonEnd: string;
+  contentKind: ContentKind;
 }
 
 export interface SongStats {
@@ -48,9 +60,18 @@ export interface OverviewStats {
   totalSkipped: number;
   avgCompletedPerDay: number;
   avgSkippedPerDay: number;
+  avgPlaysPerDay: number;
   skipToCompleteRatio: number;
   avgSessionSeconds: number;
   peakHourLabel: string;
+  paceVsLastYear: string | null;
+  beatRecord: string | null;
+}
+
+export interface InsightFact {
+  title: string;
+  value: string;
+  detail: string;
 }
 
 export interface TimelinePoint {
@@ -65,23 +86,49 @@ export interface YearSeries {
   points: TimelinePoint[];
 }
 
+export type FilterPreset = 'default' | 'wrapped' | 'custom';
+export type FilterMode = 'basic' | 'advanced';
+
 export interface AnalysisFilters {
+  preset: FilterPreset;
+  mode: FilterMode;
   yearFrom: number | null;
   yearTo: number | null;
+  monthFrom: number | null;
+  monthTo: number | null;
   search: string;
   topN: number;
   hideSkipped: boolean;
+  minMsPlayed: number;
+  includeMusic: boolean;
+  includePodcasts: boolean;
+  includeAudiobooks: boolean;
+  combineRanking: boolean;
+}
+
+export interface FilterBounds {
+  yearMin: number;
+  yearMax: number;
+}
+
+export interface FilterContext {
+  singleYear: boolean;
+  multiYear: boolean;
+  spanLabel: string;
 }
 
 export interface AnalysisResult {
   records: StreamRecord[];
   overview: OverviewStats;
+  insights: InsightFact[];
   allSongs: SongStats[];
   allArtists: ArtistStats[];
   topSongsByPlays: SongStats[];
   topSongsByTime: SongStats[];
   topArtistsByPlays: ArtistStats[];
   topArtistsByTime: ArtistStats[];
+  combinedSongs: SongStats[];
+  combinedArtists: ArtistStats[];
   playsByYear: TimelinePoint[];
   hoursByYear: TimelinePoint[];
   playsByDate: TimelinePoint[];
@@ -99,7 +146,7 @@ export interface AnalysisResult {
   availableYears: number[];
 }
 
-export type SortMetric = 'plays' | 'time';
+export type SortMetric = 'plays' | 'time' | 'combined';
 
 export type TabId =
   | 'overview'
@@ -110,4 +157,9 @@ export type TabId =
   | 'explore'
   | 'assumptions';
 
-export type AppView = 'landing' | 'assumptions' | 'dashboard';
+export type AppView =
+  | 'landing'
+  | 'assumptions'
+  | 'data-handling'
+  | 'request-data'
+  | 'dashboard';

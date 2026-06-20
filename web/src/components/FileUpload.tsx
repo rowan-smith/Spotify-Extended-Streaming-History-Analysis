@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { UPLOAD_DISCLAIMER } from '../content/assumptions';
+import { InfoTooltip } from './InfoTooltip';
 
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;
@@ -18,9 +19,7 @@ export function FileUpload({ onFilesSelected, loading, error }: FileUploadProps)
       return;
     }
 
-    const files = [...fileList].filter((file) =>
-      file.name.toLowerCase().endsWith('.json'),
-    );
+    const files = [...fileList].filter((file) => file.name.toLowerCase().endsWith('.json'));
 
     if (files.length === 0) {
       return;
@@ -41,26 +40,19 @@ export function FileUpload({ onFilesSelected, loading, error }: FileUploadProps)
   }
 
   return (
-    <section className="upload-panel">
-      <header className="upload-panel__header">
-        <h2>Load your JSON files</h2>
-        <p>
-          Select the audio streaming files from your Spotify Extended Streaming History
-          export. You can choose multiple files if your export is split across them.
-        </p>
-      </header>
-
-      <label className="disclaimer-box">
+    <section className="upload-panel upload-panel--hero">
+      <label className="disclaimer-box disclaimer-box--inline">
         <input
           type="checkbox"
           checked={disclaimerAccepted}
           onChange={(event) => setDisclaimerAccepted(event.target.checked)}
         />
         <span>{UPLOAD_DISCLAIMER}</span>
+        <InfoTooltip text="Your JSON is parsed in-memory in this tab only. Close the tab to clear it." />
       </label>
 
       <div
-        className={`dropzone${dragActive ? ' dropzone--active' : ''}${
+        className={`dropzone dropzone--hero${dragActive ? ' dropzone--active' : ''}${
           !disclaimerAccepted ? ' dropzone--disabled' : ''
         }`}
         onDragOver={(event) => {
@@ -73,21 +65,21 @@ export function FileUpload({ onFilesSelected, loading, error }: FileUploadProps)
         onDragLeave={() => setDragActive(false)}
         onDrop={onDrop}
       >
-        <p className="dropzone__title">Select your Spotify JSON files</p>
+        <p className="dropzone__title">Drop your Spotify JSON here</p>
         <p className="dropzone__text">
-          Choose one or more <code>Streaming_History_Audio_*.json</code> files, or drag
-          them here.
+          Extended <code>Streaming_History_*.json</code> files or legacy exports — select
+          multiple if your download is split.
         </p>
         <button
           type="button"
-          className="button button--primary"
+          className="button button--primary button--large"
           disabled={loading || !disclaimerAccepted}
           onClick={() => inputRef.current?.click()}
         >
           {loading ? 'Processing…' : 'Choose JSON files'}
         </button>
         {!disclaimerAccepted ? (
-          <p className="dropzone__hint">Accept the disclaimer above to enable file selection.</p>
+          <p className="dropzone__hint">Check the box above to enable upload.</p>
         ) : null}
         <input
           ref={inputRef}

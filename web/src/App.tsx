@@ -1,15 +1,25 @@
 import { useMemo, useState } from 'react';
-import { createDefaultFilters, filterRecords } from './analysis/filters';
+import {
+  createDefaultFilters,
+  filterRecords,
+  getFilterContext,
+} from './analysis/filters';
 import { analyzeRecords, loadRecordsFromFiles } from './analysis/processData';
 import { AssumptionsPage } from './components/AssumptionsPage';
 import { AssumptionsPanel } from './components/AssumptionsPanel';
 import { Dashboard, tabLabels } from './components/Dashboard';
+import { DataHandlingPage } from './components/DataHandlingPage';
 import { FilterBar } from './components/FilterBar';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyBanner } from './components/PrivacyBanner';
+import { RequestDataPage } from './components/RequestDataPage';
+import { ThemeToggle } from './components/ThemeToggle';
+import { CONTRIBUTING_URL, ISSUES_URL, REPO_URL } from './content/siteContent';
+import { useTheme } from './hooks/useTheme';
 import type { AnalysisFilters, AppView, StreamRecord, TabId } from './types';
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
   const [view, setView] = useState<AppView>('landing');
   const [allRecords, setAllRecords] = useState<StreamRecord[]>([]);
   const [bounds, setBounds] = useState({ yearMin: 0, yearMax: 0 });
@@ -19,6 +29,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const tabs = useMemo(() => tabLabels(), []);
+  const filterContext = useMemo(() => getFilterContext(filters), [filters]);
 
   const filteredRecords = useMemo(
     () => filterRecords(allRecords, filters),
@@ -38,9 +49,9 @@ export default function App() {
 
     try {
       const records = await loadRecordsFromFiles(files);
-      const yearMin = records[0]?.ts.getUTCFullYear() ?? new Date().getUTCFullYear();
+      const yearMin = records[0]?.ts.getUTCFullYear() ?? new Date().getFullYear();
       const yearMax =
-        records[records.length - 1]?.ts.getUTCFullYear() ?? new Date().getUTCFullYear();
+        records[records.length - 1]?.ts.getUTCFullYear() ?? new Date().getFullYear();
 
       setAllRecords(records);
       setBounds({ yearMin, yearMax });
@@ -68,7 +79,15 @@ export default function App() {
     setView('assumptions');
   }
 
-  function returnFromAssumptions() {
+  function openDataHandling() {
+    setView('data-handling');
+  }
+
+  function openRequestData() {
+    setView('request-data');
+  }
+
+  function returnToMain() {
     setView(allRecords.length > 0 ? 'dashboard' : 'landing');
   }
 
@@ -96,10 +115,24 @@ export default function App() {
             </button>
             <button
               type="button"
+              className={`site-nav__link${view === 'request-data' ? ' site-nav__link--active' : ''}`}
+              onClick={openRequestData}
+            >
+              Get your data
+            </button>
+            <button
+              type="button"
               className={`site-nav__link${view === 'assumptions' ? ' site-nav__link--active' : ''}`}
               onClick={openAssumptions}
             >
               Assumptions
+            </button>
+            <button
+              type="button"
+              className={`site-nav__link${view === 'data-handling' ? ' site-nav__link--active' : ''}`}
+              onClick={openDataHandling}
+            >
+              Data handling
             </button>
             {allRecords.length > 0 ? (
               <button
@@ -110,16 +143,20 @@ export default function App() {
                 Your stats
               </button>
             ) : null}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </nav>
         </div>
       </header>
 
-      {view === 'dashboard' ? <PrivacyBanner compact /> : null}
+      {view === 'dashboard' ? (
+        <PrivacyBanner compact onOpenDataHandling={openDataHandling} />
+      ) : null}
 
       <main className="main-content">
         {view === 'landing' ? (
           <LandingPage
-            onOpenAssumptions={openAssumptions}
+            onOpenDataHandling={openDataHandling}
+            onOpenRequestData={openRequestData}
             onFilesSelected={handleFilesSelected}
             loading={loading}
             error={error}
@@ -128,7 +165,21 @@ export default function App() {
 
         {view === 'assumptions' ? (
           <AssumptionsPage
-            onBack={returnFromAssumptions}
+            onBack={returnToMain}
+            backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+          />
+        ) : null}
+
+        {view === 'data-handling' ? (
+          <DataHandlingPage
+            onBack={returnToMain}
+            backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+          />
+        ) : null}
+
+        {view === 'request-data' ? (
+          <RequestDataPage
+            onBack={returnToMain}
             backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
           />
         ) : null}
@@ -148,9 +199,7 @@ export default function App() {
                 <div className="toolbar">
                   <div className="toolbar__summary">
                     <strong>{analysis.overview.totalPlays.toLocaleString()} plays</strong>
-                    <span>
-                      {analysis.overview.yearMin}–{analysis.overview.yearMax}
-                    </span>
+                    <span>{filterContext.spanLabel}</span>
                   </div>
                   <button type="button" className="button button--ghost" onClick={resetAnalysis}>
                     Load different files
@@ -175,12 +224,18 @@ export default function App() {
                 {activeTab === 'assumptions' ? (
                   <AssumptionsPanel />
                 ) : (
-                  <Dashboard analysis={analysis} activeTab={activeTab} />
+                  <Dashboard
+                    analysis={analysis}
+                    activeTab={activeTab}
+                    filterContext={filterContext}
+                    filters={filters}
+                    theme={theme}
+                  />
                 )}
               </>
             ) : (
               <p className="error-banner">
-                No plays match your current filters. Try widening the year range or clearing
+                No plays match your current filters. Try widening the date range or clearing
                 search.
               </p>
             )}
@@ -190,8 +245,19 @@ export default function App() {
 
       <footer className="site-footer">
         <p>
-          Static site hosted on GitHub Pages. No backend, no cookies, no data collection.
-          In-memory analysis is cleared when you leave this page.
+          Open source —{' '}
+          <a href={REPO_URL} target="_blank" rel="noreferrer">
+            view on GitHub
+          </a>
+          ,{' '}
+          <a href={ISSUES_URL} target="_blank" rel="noreferrer">
+            report an issue
+          </a>
+          ,{' '}
+          <a href={CONTRIBUTING_URL} target="_blank" rel="noreferrer">
+            contribute
+          </a>
+          . Analysis runs in your browser; data clears when you leave.
         </p>
       </footer>
     </div>

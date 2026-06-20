@@ -1,127 +1,61 @@
 # Spotify Extended Streaming History Analysis
 
-## Prerequisites
+Explore your Spotify Extended Streaming History in the browser. Upload JSON exports, filter your listening data, and browse interactive charts — all processed locally on your device.
 
----
+**Live site:** [rowan-smith.github.io/Spotify-Extended-Streaming-History-Analysis](https://rowan-smith.github.io/Spotify-Extended-Streaming-History-Analysis/)
 
-#### Required
-* [Python](https://www.microsoft.com/store/productId/9NCVDN91XZQP?ocid=pdpshare) (version 3 or greater)
-* Your Spotify Extended Streaming data to the `/MyData/` subdirectory
-  * You can request your data from the [Spotify Account Privacy](https://www.spotify.com/account/privacy/) page.
+## Quick start (users)
 
-#### Optional (Not Needed)
-* [Git](https://git-scm.com/)
+1. [Request your extended streaming history](https://www.spotify.com/account/privacy/) from Spotify (see **Get your data** in the app for steps).
+2. Extract the ZIP and find `Streaming_History_*.json` files (extended or legacy format).
+3. Open the site, accept the short disclaimer, and drag your JSON files onto the upload area.
 
-## Setup
+Nothing is uploaded to a backend. Data stays in memory until you close the tab.
 
----
+## Development
 
-1. Download or clone this repository to your local machine.
-   * Download: ![download.png](images/download.png)
-   * Clone: ``` git clone https://github.com/rowan-smith/Spotify-Extended-Streaming-History-Analysis.git```
-2. Open Terminal in download location, the easier way is to right-click in the folder and click `Open in Terminal`
-   * ![open-in-terminal.png](images/open-in-terminal.png)
-3. Create virtual environment.
-   * ```python -m venv venv```
-4. Use virtual environment.
-   * ```.\venv\Scripts\activate```
-   * If you run into this message: ![execution-policy.png](images/execution-policy.png)
-     * Set the execution policy ([what this does](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.4#-executionpolicy)):
-       * ```Set-ExecutionPolicy RemoteSigned -Scope CurrentUser```
-5. Install `requirements.txt` dependencies.
-   * ```python -m pip install -r requirements.txt```
-6. Populate `\MyData\` with your Spotify Extended Streaming history files (`Streaming_History_Audio_...json`)
-7. Open and run Jupyter Notebook.
-   * ```jupyter notebook```
-8. Navigate to `analysis.ipynb` (Notebook)
-9. Click `Restart the kernel and run all cells`
-   * ![run-all-cells.png](images/run-all-cells.png)
-10. You can now explore your spotify data.
+The web app source lives in `/web`. Production builds output to `/docs` for GitHub Pages.
 
-## Web app (GitHub Pages)
-
-A React version of this analysis runs entirely in the browser — no Python required for end users.
-
-**Live site:** after enabling Pages, visit
-`https://<your-github-username>.github.io/Spotify-Extended-Streaming-History-Analysis/`
+```bash
+cd web
+npm install
+npm run dev      # local development
+npm run build    # build to /docs
+```
 
 ### Enable GitHub Pages
 
-1. Push this repository to GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-4. Choose branch **`main`** and folder **`/docs`**.
-5. Save. GitHub will serve the static site from the built files in `/docs`.
+1. Push to GitHub.
+2. **Settings → Pages →** deploy from branch `main`, folder `/docs`.
 
-### Build the web app locally
+### Cloudflare Web Analytics (optional)
 
-The source lives in `/web`. Production builds are written to `/docs` for GitHub Pages.
+Uncomment the beacon script in `web/index.html` and set your token from the Cloudflare dashboard to track anonymous page views.
 
-```bash
-cd web
-npm install
-npm run build
-```
+## Contributing
 
-Commit the updated `/docs` folder, push to `main`, and Pages will pick up the changes.
+Contributions are welcome.
 
-### Local development
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b your-feature`
+3. Make changes in `/web` and run `npm run build` if you changed the app (commit updated `/docs` for Pages deploys).
+4. Open a pull request with a clear description and screenshots for UI changes.
 
-```bash
-cd web
-npm install
-npm run dev
-```
+### Guidelines
 
-Use **Get started** on the page to review the privacy disclaimer, accept it, and load your `Streaming_History_Audio_*.json` exports. Files are processed locally and never uploaded. See the **Assumptions** page for how stats are calculated.
+- Keep analysis client-side — do not add backends that receive user exports.
+- Match existing TypeScript/React patterns in `/web/src`.
+- Prefer focused PRs over large mixed changes.
+- Update assumptions or data-handling copy when filter behaviour changes.
 
-The dashboard mirrors the Jupyter notebook analysis and adds interactive filters:
+## Report issues
 
-* Year range, search, top-N, and hide-skipped controls
-* Overview, songs, artists, timeline, patterns, and explore tabs
-* Sortable/searchable tables for all songs, all artists, and longest listens
-* Year drill-down charts with plays vs playtime toggle
+Bug reports and feature requests: [GitHub Issues](https://github.com/rowan-smith/Spotify-Extended-Streaming-History-Analysis/issues)
 
 ## Assumptions
 
-This analysis is built on a few explicit assumptions about Spotify Extended Streaming History data. Understanding them helps interpret the charts and stats.
+See the **Assumptions** page in the app for how stats are calculated (play counts, sessions, UTC vs local time, content filters, etc.).
 
-* **One row = one streaming event.** Each JSON record is counted as a single play/listen, regardless of how long you actually listened.
-* **Music only.** Rows without a track name, plus podcast episodes and audiobooks, are excluded so rankings reflect songs.
-* **No minimum play duration.** Very short plays and skips are included in listen counts unless a chart specifically filters on `skipped` or `reason_end`.
-* **Timestamps are UTC.** Spotify exports `ts` in UTC. Hour-of-day and calendar charts use that timestamp as-is (not your local timezone).
-* **Duplicate exports are deduplicated.** If multiple JSON files overlap, rows with the same `ts`, `track_name`, `artist_name`, and `ms_played` are kept once.
-* **"Listen count" = row count.** Grouped `count` operations count streaming events, not unique songs or album plays.
-* **"Playtime" = sum of `ms_played`.** Total listening time is the sum of milliseconds reported by Spotify for each event.
-* **Track identity = `(track_name, artist_name)`.** Same song title by different artists, or metadata changes over time, appear as separate entries.
-* **"Most listened" for a period** is the track with the highest metric for that chart (play count or total playtime). Ties are broken by sort order.
-* **Completed listen** means `reason_end == 'trackdone'`. That indicates the track finished playing, not necessarily that you listened intentionally start to finish.
-* **Skipped track** means `skipped == True` in the export.
-* **Listening session** = consecutive plays with no gap longer than 30 minutes between them (`SESSION_GAP` in the notebook).
-* **Month/day seasonality charts** pool all Januaries, all 1sts of the month, etc. across every year in your history. They show seasonal patterns, not a running cumulative total over time.
+## License
 
-## This analysis explores the following
-
----
-
-* Earliest Listened Song
-* Latest Listened Song
-* Your Top 10 Songs (all-time)
-* Your Top 10 Artists (all-time)
-* Your Top 10 Songs by Year
-* Your Top 10 Artists by Year
-* Timeline of Song Listens
-* What Years do you Listen to the Most Songs?
-* Years Listen to the Most Songs
-* Months Listen to the Most Songs
-* Days Listen to Songs
-
-Todo (Maybe):
-* Most Listens of a Song in a Year
-* Most Listens of a Song in a Month
-* Most Listens of a Song in a Day
-* Most Listens of  Song Ever
-* Total Unique Songs
-* Total Unique Artists
-* Genres??? 
-* Weekday
+See repository license file if present; otherwise treat as open source for personal and educational use.

@@ -1,6 +1,10 @@
+import { buildCombinedSongs, computeInsights } from './insights';
+import { normalizeRawRecord, parseTimestamp } from './normalizeRecord';
+import { formatHourLabelLocal } from '../utils/formatting';
 import type {
   AnalysisResult,
   ArtistStats,
+  ContentKind,
   OverviewStats,
   RawRecord,
   SongStats,
@@ -36,10 +40,10 @@ export async function parseJsonFiles(files: File[]): Promise<RawRecord[]> {
 
     if (Array.isArray(parsed)) {
       for (const record of parsed) {
-        records.push(record);
+        records.push(normalizeRawRecord(record));
       }
     } else {
-      records.push(parsed);
+      records.push(normalizeRawRecord(parsed));
     }
   }
 
@@ -50,28 +54,60 @@ function isTruthySkipped(value: RawRecord['skipped']): boolean {
   return value === true || value === 'True' || value === 'true';
 }
 
+function classifyContent(row: RawRecord): ContentKind | null {
+  if (row.audiobook_title || row.audiobook_uri) {
+    return 'audiobook';
+  }
+  if (row.episode_name || row.episode_show_name) {
+    return 'podcast';
+  }
+  if (row.master_metadata_track_name || row.trackName) {
+    return 'music';
+  }
+  return null;
+}
+
 export function cleanRecords(raw: RawRecord[]): StreamRecord[] {
   const cleaned: StreamRecord[] = [];
 
   for (const row of raw) {
-    if (!row.master_metadata_track_name) {
+    const contentKind = classifyContent(row);
+    if (!contentKind) {
       continue;
     }
-    if (row.episode_name) {
+
+    const trackName =
+      contentKind === 'podcast'
+        ? (row.episode_name ?? 'Unknown episode')
+        : contentKind === 'audiobook'
+          ? (row.audiobook_title ?? 'Unknown audiobook')
+          : (row.master_metadata_track_name ?? row.trackName);
+
+    if (!trackName) {
       continue;
     }
-    if (row.audiobook_title) {
+
+    const artistName =
+      contentKind === 'podcast'
+        ? (row.episode_show_name ?? row.master_metadata_album_artist_name ?? 'Unknown show')
+        : contentKind === 'audiobook'
+          ? 'Audiobook'
+          : (row.master_metadata_album_artist_name ?? row.artistName ?? 'Unknown Artist');
+
+    const tsValue = row.ts ?? row.endTime;
+    if (!tsValue) {
       continue;
     }
 
     cleaned.push({
-      ts: new Date(row.ts),
-      trackName: row.master_metadata_track_name,
-      artistName: row.master_metadata_album_artist_name ?? 'Unknown Artist',
-      albumName: row.master_metadata_album_album_name ?? 'Unknown Album',
-      msPlayed: row.ms_played,
+      ts: parseTimestamp(tsValue),
+      trackName,
+      artistName,
+      albumName: row.master_metadata_album_album_name ?? row.albumName ?? 'Unknown Album',
+      msPlayed: row.ms_played ?? row.msPlayed ?? 0,
       skipped: isTruthySkipped(row.skipped),
       reasonEnd: row.reason_end ?? '',
+      contentKind,
     });
   }
 
@@ -154,12 +190,27 @@ export function aggregateArtists(records: StreamRecord[]): Map<string, ArtistSta
 }
 
 function sortSongs(items: SongStats[], sortBy: SortMetric): SongStats[] {
+  if (sortBy === 'combined') {
+    return buildCombinedSongs(items);
+  }
   return [...items].sort((a, b) =>
     sortBy === 'plays' ? b.numPlays - a.numPlays : b.totalHours - a.totalHours,
   );
 }
 
 function sortArtists(items: ArtistStats[], sortBy: SortMetric): ArtistStats[] {
+  if (sortBy === 'combined') {
+    const maxPlays = Math.max(...items.map((item) => item.listenCount), 1);
+    const maxHours = Math.max(...items.map((item) => item.totalHours), 1);
+    return [...items]
+      .map((item) => ({
+        ...item,
+        combinedScore:
+          (item.listenCount / maxPlays) * 0.5 + (item.totalHours / maxHours) * 0.5,
+      }))
+      .sort((a, b) => b.combinedScore - a.combinedScore)
+      .map(({ combinedScore: _removed, ...item }) => item);
+  }
   return [...items].sort((a, b) =>
     sortBy === 'plays' ? b.listenCount - a.listenCount : b.totalHours - a.totalHours,
   );
@@ -181,33 +232,22 @@ export function topArtists(
   return sortArtists([...map.values()], sortBy).slice(0, limit);
 }
 
-function formatHourLabel(hour: number): string {
-  const date = new Date(Date.UTC(2000, 0, 1, hour));
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    hour12: true,
-    timeZone: 'UTC',
-  });
+function localDateKey(ts: Date): string {
+  const year = ts.getFullYear();
+  const month = String(ts.getMonth() + 1).padStart(2, '0');
+  const day = String(ts.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-function dateKey(ts: Date): string {
-  return ts.toISOString().slice(0, 10);
-}
-
-function yearMonthKey(ts: Date): string {
-  const year = ts.getUTCFullYear();
-  const month = String(ts.getUTCMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
+function localHour(ts: Date): number {
+  return ts.getHours();
 }
 
 function topSongFromMap(songs: Map<string, SongStats>, metric: SortMetric): SongStats | undefined {
-  return sortSongs([...songs.values()], metric)[0];
+  return sortSongs([...songs.values()], metric === 'combined' ? 'plays' : metric)[0];
 }
 
-function buildYearTimeline(
-  records: StreamRecord[],
-  metric: SortMetric,
-): TimelinePoint[] {
+function buildYearTimeline(records: StreamRecord[], metric: SortMetric): TimelinePoint[] {
   const yearMap = new Map<number, { value: number; songs: Map<string, SongStats> }>();
 
   for (const record of records) {
@@ -247,14 +287,11 @@ function buildYearTimeline(
     });
 }
 
-function buildDailyTimeline(
-  records: StreamRecord[],
-  metric: SortMetric,
-): TimelinePoint[] {
+function buildDailyTimeline(records: StreamRecord[], metric: SortMetric): TimelinePoint[] {
   const dayMap = new Map<string, { value: number; songs: Map<string, SongStats> }>();
 
   for (const record of records) {
-    const day = dateKey(record.ts);
+    const day = localDateKey(record.ts);
     const bucket = dayMap.get(day) ?? { value: 0, songs: new Map<string, SongStats>() };
     bucket.value += metric === 'plays' ? 1 : record.msPlayed / 3_600_000;
 
@@ -294,7 +331,7 @@ function buildYearMonthTimeline(records: StreamRecord[]): TimelinePoint[] {
   const monthMap = new Map<string, { value: number; songs: Map<string, SongStats> }>();
 
   for (const record of records) {
-    const key = yearMonthKey(record.ts);
+    const key = `${record.ts.getUTCFullYear()}-${String(record.ts.getUTCMonth() + 1).padStart(2, '0')}`;
     const bucket = monthMap.get(key) ?? { value: 0, songs: new Map<string, SongStats>() };
     bucket.value += record.msPlayed / 3_600_000;
 
@@ -356,10 +393,7 @@ function buildMonthlyHistoryByYear(records: StreamRecord[]): YearSeries[] {
     }));
 }
 
-function buildMonthSeasonality(
-  records: StreamRecord[],
-  metric: SortMetric,
-): TimelinePoint[] {
+function buildMonthSeasonality(records: StreamRecord[], metric: SortMetric): TimelinePoint[] {
   const counts = Array.from({ length: 12 }, (_, index) => ({
     month: index + 1,
     value: 0,
@@ -444,7 +478,7 @@ function buildHourDistribution(records: StreamRecord[]): TimelinePoint[] {
   }));
 
   for (const record of records) {
-    const bucket = counts[record.ts.getUTCHours()];
+    const bucket = counts[localHour(record.ts)];
     bucket.value += 1;
 
     const key = songKey(record.trackName, record.artistName);
@@ -465,7 +499,7 @@ function buildHourDistribution(records: StreamRecord[]): TimelinePoint[] {
   return counts.map((bucket) => {
     const topSong = topSongFromMap(bucket.songs, 'plays');
     return {
-      label: formatHourLabel(bucket.hour),
+      label: formatHourLabelLocal(bucket.hour),
       sortKey: bucket.hour,
       value: bucket.value,
       topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
@@ -501,6 +535,59 @@ function buildTopByYear<T extends SongStats | ArtistStats>(
   return result;
 }
 
+function computeFutureMetrics(records: StreamRecord[]): {
+  paceVsLastYear: string | null;
+  beatRecord: string | null;
+} {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const dayOfYear = Math.floor(
+    (now.getTime() - new Date(currentYear, 0, 0).getTime()) / 86_400_000,
+  );
+  const daysLeft = Math.max(
+    1,
+    Math.floor((new Date(currentYear, 11, 31).getTime() - now.getTime()) / 86_400_000),
+  );
+
+  const playsByYear = new Map<number, number>();
+  for (const record of records) {
+    const year = record.ts.getUTCFullYear();
+    playsByYear.set(year, (playsByYear.get(year) ?? 0) + 1);
+  }
+
+  const thisYearPlays = playsByYear.get(currentYear) ?? 0;
+  const lastYearPlays = playsByYear.get(currentYear - 1) ?? 0;
+
+  let paceVsLastYear: string | null = null;
+  if (lastYearPlays > 0 && dayOfYear > 0) {
+    const projected = (thisYearPlays / dayOfYear) * 365;
+    if (projected < lastYearPlays) {
+      const needed = Math.ceil((lastYearPlays - thisYearPlays) / daysLeft);
+      paceVsLastYear = `${needed.toLocaleString()} plays/day to match ${currentYear - 1}`;
+    } else {
+      paceVsLastYear = `On pace to beat ${currentYear - 1} (${Math.round(projected).toLocaleString()} projected)`;
+    }
+  }
+
+  let beatRecord: string | null = null;
+  const yearlyTotals = [...playsByYear.entries()].filter(([year]) => year <= currentYear);
+  if (yearlyTotals.length > 0) {
+    const recordEntry = yearlyTotals.reduce((best, entry) => (entry[1] > best[1] ? entry : best));
+    const recordTotal = recordEntry[0] === currentYear ? recordEntry[1] : recordEntry[1];
+    const recordYear = recordEntry[0];
+
+    if (recordYear !== currentYear || thisYearPlays < recordTotal) {
+      const target = Math.max(recordTotal, recordEntry[1]);
+      if (thisYearPlays < target) {
+        const needed = Math.ceil((target - thisYearPlays) / daysLeft);
+        beatRecord = `${needed.toLocaleString()} plays/day for ${daysLeft} days to beat your record (${target.toLocaleString()} in ${recordYear === currentYear ? 'prior peak' : recordYear})`;
+      }
+    }
+  }
+
+  return { paceVsLastYear, beatRecord };
+}
+
 function computeOverview(records: StreamRecord[]): OverviewStats {
   const totalMs = records.reduce((sum, record) => sum + record.msPlayed, 0);
   const uniqueSongs = new Set(records.map((record) => songKey(record.trackName, record.artistName)));
@@ -512,7 +599,7 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
   let skipped = 0;
 
   for (const record of records) {
-    const day = dateKey(record.ts);
+    const day = localDateKey(record.ts);
 
     if (record.reasonEnd === 'trackdone') {
       completed += 1;
@@ -526,7 +613,7 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
   }
 
   let sessionCount = 0;
-  let sessionTotalMs = 0;
+  let sessionTotalMs = records[0]?.msPlayed ?? 0;
   let currentSessionMs = records[0]?.msPlayed ?? 0;
 
   for (let index = 1; index < records.length; index += 1) {
@@ -548,7 +635,7 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
 
   const hourCounts = new Map<number, number>();
   for (const record of records) {
-    const hour = record.ts.getUTCHours();
+    const hour = localHour(record.ts);
     hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
   }
 
@@ -561,8 +648,9 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
     }
   }
 
-  const dayCount = new Set(records.map((record) => dateKey(record.ts))).size;
-  const fallbackYear = new Date().getUTCFullYear();
+  const dayCount = new Set(records.map((record) => localDateKey(record.ts))).size;
+  const fallbackYear = new Date().getFullYear();
+  const future = computeFutureMetrics(records);
 
   return {
     totalPlays: records.length,
@@ -583,15 +671,20 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
       dayCount > 0
         ? [...skippedByDay.values()].reduce((sum, value) => sum + value, 0) / dayCount
         : 0,
+    avgPlaysPerDay: dayCount > 0 ? records.length / dayCount : 0,
     skipToCompleteRatio: completed > 0 ? skipped / completed : 0,
     avgSessionSeconds: sessionCount > 0 ? sessionTotalMs / sessionCount / 1000 : 0,
-    peakHourLabel: formatHourLabel(peakHour),
+    peakHourLabel: formatHourLabelLocal(peakHour),
+    paceVsLastYear: future.paceVsLastYear,
+    beatRecord: future.beatRecord,
   };
 }
 
 export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResult {
   const songMap = aggregateSongs(records);
   const artistMap = aggregateArtists(records);
+  const allSongs = sortSongs([...songMap.values()], 'plays');
+  const allArtists = sortArtists([...artistMap.values()], 'plays');
   const availableYears = [...new Set(records.map((record) => record.ts.getUTCFullYear()))].sort(
     (a, b) => a - b,
   );
@@ -599,12 +692,15 @@ export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResu
   return {
     records,
     overview: computeOverview(records),
-    allSongs: sortSongs([...songMap.values()], 'plays'),
-    allArtists: sortArtists([...artistMap.values()], 'plays'),
+    insights: computeInsights(records),
+    allSongs,
+    allArtists,
     topSongsByPlays: topSongs(songMap, 'plays', topN),
     topSongsByTime: topSongs(songMap, 'time', topN),
     topArtistsByPlays: topArtists(artistMap, 'plays', topN),
     topArtistsByTime: topArtists(artistMap, 'time', topN),
+    combinedSongs: topSongs(songMap, 'combined', topN),
+    combinedArtists: topArtists(artistMap, 'combined', topN),
     playsByYear: buildYearTimeline(records, 'plays'),
     hoursByYear: buildYearTimeline(records, 'time'),
     playsByDate: buildDailyTimeline(records, 'plays'),
@@ -629,7 +725,16 @@ export function formatDuration(ms: number): string {
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
 }
 
 export function formatHours(hours: number): string {
@@ -648,7 +753,7 @@ export async function loadRecordsFromFiles(files: File[]): Promise<StreamRecord[
 
   if (cleaned.length === 0) {
     throw new Error(
-      'No music streaming records found. Make sure you selected Extended Streaming History JSON files.',
+      'No streaming records found. Use Extended Streaming History JSON files (Streaming_History_*.json) or legacy endTime exports.',
     );
   }
 

@@ -12,20 +12,24 @@ export const ASSUMPTIONS: Assumption[] = [
     body: 'Each JSON record is counted as a single play/listen, regardless of how long you actually listened.',
   },
   {
-    title: 'Music only',
-    body: 'Rows without a track name, plus podcast episodes and audiobooks, are excluded so rankings reflect songs.',
+    title: 'Content type filters',
+    body: 'By default only music rows are included. Podcast and audiobook rows can be enabled in advanced filters.',
   },
   {
-    title: 'No minimum play duration',
-    body: 'Very short plays and skips are included in listen counts unless a chart specifically filters on skipped or reason_end.',
+    title: 'Minimum play duration (filters)',
+    body: 'The default preset ignores plays under 30 seconds. Wrapped-style presets use similar thresholds. Custom filters can change this.',
   },
   {
-    title: 'Timestamps are UTC',
-    body: 'Spotify exports ts in UTC. Hour-of-day and calendar charts use that timestamp as-is, not your local timezone.',
+    title: 'Timestamps and local time',
+    body: 'Spotify exports ts in UTC. Calendar day boundaries for habits use your browser local timezone. Hour-of-day charts also use local time.',
   },
   {
     title: 'Duplicate exports are deduplicated',
     body: 'If multiple JSON files overlap, rows with the same ts, track name, artist name, and ms_played are kept once.',
+  },
+  {
+    title: 'Legacy JSON support',
+    body: 'Older exports using endTime, trackName, and msPlayed field names are normalized to the extended format automatically.',
   },
   {
     title: '"Listen count" = row count',
@@ -61,13 +65,12 @@ export const ASSUMPTIONS: Assumption[] = [
   },
 ];
 
+export const UPLOAD_DISCLAIMER =
+  'I understand my files are processed locally in this browser tab and cleared when I leave.';
+
 export const PRIVACY_POINTS = [
-  'This site has no backend server and no database.',
-  'Your JSON files are read locally in your browser using standard file APIs.',
+  'Your JSON files are read locally using standard browser file APIs.',
   'Parsed data lives only in memory for as long as this tab stays open.',
   'When you close the tab, navigate away, or refresh the page, that in-memory data is discarded.',
-  'Nothing is uploaded, logged, or stored by this project.',
+  'See the Data handling page for full details.',
 ];
-
-export const UPLOAD_DISCLAIMER =
-  'I understand that my Spotify JSON files will be processed locally in my browser, held only in memory while this page is open, and discarded when I leave. I am selecting files I am comfortable viewing on this device.';

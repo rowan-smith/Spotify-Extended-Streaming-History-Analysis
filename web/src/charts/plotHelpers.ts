@@ -1,13 +1,24 @@
-import type { PlotData } from 'plotly.js-dist-min';
+import type { Layout, PlotData } from 'plotly.js-dist-min';
 import type { YearSeries } from '../types';
 
-export const plotLayout = {
-  paper_bgcolor: 'rgba(0,0,0,0)',
-  plot_bgcolor: 'rgba(0,0,0,0)',
-  font: { color: '#e8eaed', family: 'Segoe UI, system-ui, sans-serif' },
-  margin: { l: 40, r: 24, t: 48, b: 40 },
-  hovermode: 'closest' as const,
-};
+export function getPlotTheme(isDark: boolean) {
+  const text = isDark ? '#e8eaed' : '#1a1d21';
+  const grid = isDark ? '#2a2a2a' : '#d8dde3';
+  const accent = '#1db954';
+
+  return {
+    text,
+    grid,
+    accent,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: text, family: 'Segoe UI, system-ui, sans-serif' },
+      margin: { l: 40, r: 24, t: 48, b: 40 },
+      hovermode: 'closest' as const,
+    } satisfies Partial<Layout>,
+  };
+}
 
 const SERIES_COLORS = [
   '#1db954',
@@ -27,17 +38,40 @@ export function horizontalBarChart(
   values: number[],
   hoverText?: string[],
   xTitle = 'Count',
+  options?: { compact?: boolean; accent?: string },
 ): Partial<PlotData> {
+  const compact = options?.compact ?? false;
+  const reversedLabels = [...labels].reverse();
+  const reversedValues = [...values].reverse();
+  const reversedHover = hoverText ? [...hoverText].reverse() : undefined;
+
+  if (compact) {
+    return {
+      type: 'bar',
+      orientation: 'h',
+      y: reversedLabels.map(() => ''),
+      x: reversedValues,
+      text: reversedLabels,
+      textposition: 'inside',
+      insidetextanchor: 'start',
+      textfont: { color: '#08140c', size: 11 },
+      hovertext: reversedHover ?? reversedLabels,
+      hovertemplate: '%{hovertext}<br>%{x}<extra></extra>',
+      marker: { color: options?.accent ?? '#1db954' },
+      name: xTitle,
+    };
+  }
+
   return {
     type: 'bar',
     orientation: 'h',
-    y: [...labels].reverse(),
-    x: [...values].reverse(),
-    text: hoverText ? [...hoverText].reverse() : undefined,
+    y: reversedLabels,
+    x: reversedValues,
+    text: reversedHover,
     hovertemplate: hoverText
       ? '%{y}<br>%{x}<br>%{text}<extra></extra>'
       : '%{y}<br>%{x}<extra></extra>',
-    marker: { color: '#1db954' },
+    marker: { color: options?.accent ?? '#1db954' },
     name: xTitle,
   };
 }
@@ -47,6 +81,7 @@ export function lineChart(
   values: number[],
   hoverText?: string[],
   yTitle = 'Count',
+  accent = '#1db954',
 ): Partial<PlotData> {
   return {
     type: 'scatter',
@@ -57,7 +92,7 @@ export function lineChart(
     hovertemplate: hoverText
       ? '%{x}<br>%{y}<br>Top: %{text}<extra></extra>'
       : '%{x}<br>%{y}<extra></extra>',
-    line: { color: '#1db954', width: 2 },
+    line: { color: accent, width: 2 },
     marker: { color: '#1ed760' },
     name: yTitle,
   };
@@ -68,6 +103,7 @@ export function verticalBarChart(
   values: number[],
   hoverText?: string[],
   yTitle = 'Count',
+  accent = '#1db954',
 ): Partial<PlotData> {
   return {
     type: 'bar',
@@ -77,7 +113,7 @@ export function verticalBarChart(
     hovertemplate: hoverText
       ? '%{x}<br>%{y}<br>Top: %{text}<extra></extra>'
       : '%{x}<br>%{y}<extra></extra>',
-    marker: { color: '#1db954' },
+    marker: { color: accent },
     name: yTitle,
   };
 }
@@ -94,3 +130,6 @@ export function multiYearLineSeries(series: YearSeries[], yTitle = 'Hours'): Par
     hovertemplate: `${entry.year}-%{x}<br>%{y:.1f} ${yTitle}<extra></extra>`,
   }));
 }
+
+/** @deprecated use getPlotTheme().layout */
+export const plotLayout = getPlotTheme(true).layout;

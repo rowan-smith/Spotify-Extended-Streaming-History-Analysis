@@ -28,7 +28,7 @@ export function PrivacyBanner({ compact = false, onOpenDataHandling }: PrivacyBa
         <div>
           <h2>Processed locally in your browser</h2>
           <p>
-            Upload your export, explore stats, and leave — nothing from your JSON is stored by
+            Upload your export, explore stats, and leave. Nothing from your JSON is stored by
             this project.{' '}
             {onOpenDataHandling ? (
               <button type="button" className="text-link" onClick={onOpenDataHandling}>

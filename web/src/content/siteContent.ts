@@ -5,6 +5,9 @@ export const ISSUES_URL = `${REPO_URL}/issues`;
 
 export const CONTRIBUTING_URL = `${REPO_URL}#contributing`;
 
+export const SPOTIFY_PRIVACY_URL = 'https://www.spotify.com/account/privacy/';
+export const SPOTIFY_PRIVACY_LABEL = 'spotify.com/account/privacy';
+
 export const FILTER_PRESET_INFO = {
   default: 'Sensible defaults: music only, listens of at least 30 seconds, skipped plays excluded.',
   wrapped:
@@ -35,14 +38,14 @@ export const METRIC_INFO = {
   totalPlays:
     'Count of streaming events after your filters. Each JSON row is one play, regardless of duration.',
   totalListening:
-    'Sum of ms_played for filtered rows — total time Spotify recorded you listening.',
+    'Sum of ms_played for filtered rows: total time Spotify recorded you listening.',
   uniqueSongs: 'Distinct (track, artist) pairs in the filtered data.',
   uniqueArtists: 'Distinct artist names in the filtered data.',
   historySpan: 'Earliest to latest play in the filtered range.',
   peakHour:
     'Hour of day with the most plays, shown in your browser’s local timezone.',
   completedListens:
-    "Plays where reason_end is 'trackdone' — the track reached the end according to Spotify.",
+    "Plays where reason_end is 'trackdone': the track reached the end according to Spotify.",
   skippedPlays: 'Plays where skipped is true in the export.',
   avgCompletedPerDay:
     'Average completed listens per calendar day that has at least one play in the filtered range.',
@@ -65,7 +68,7 @@ export const METRIC_INFO = {
 export const PLAYS_VS_TIME_INFO = {
   plays:
     'Play count ranks by how often you started a track. Skips and short listens count the same as long sessions.',
-  time: 'Playtime ranks by total ms_played — long listens and repeat sessions boost a track’s score.',
+  time: 'Playtime ranks by total ms_played. Long listens and repeat sessions boost a track’s score.',
 } as const;
 
 export const DATA_HANDLING_SECTIONS = [
@@ -95,14 +98,38 @@ export const REQUEST_DATA_STEPS = [
   {
     title: 'Open Spotify account privacy settings',
     body: 'Go to spotify.com/account/privacy while logged in to your Spotify account.',
+    image: 'account-privacy.png',
+    imageAlt: 'Spotify Account privacy page',
   },
   {
-    title: 'Request your data',
-    body: 'Choose "Download your data" or "Privacy settings", then request Extended streaming history (and optionally other packages). Spotify emails you when the export is ready — this can take several days.',
+    title: 'Select Extended streaming history',
+    body: 'Scroll to Manage your data and check Extended streaming history, the package with track names, timestamps, and play duration. Spotify can take up to 30 days to prepare it.',
+    image: 'extended-streaming-history.png',
+    imageAlt: 'Extended streaming history option selected in the Spotify data request form',
+    imageVariant: 'compact',
+  },
+  {
+    title: 'Click Request data',
+    body: 'With Extended streaming history selected, click Request data to submit the export.',
+    image: 'request-data.png',
+    imageAlt: 'Request data button on the Spotify account privacy page',
+    imageVariant: 'inline',
+  },
+  {
+    title: 'Confirm your request by email',
+    body: 'Spotify sends a confirmation email. Open it and click CONFIRM (check spam if you do not see it). The link expires after 14 days.',
+    image: 'email-confirm.png',
+    imageAlt: 'Spotify email asking you to confirm your data download request',
+  },
+  {
+    title: 'Wait for your export',
+    body: 'After confirming, Spotify prepares your file. You will get another email when the ZIP is ready to download.',
+    image: 'account-privacy-preparing.png',
+    imageAlt: 'Spotify account privacy page showing your data export is being prepared',
   },
   {
     title: 'Download the ZIP',
-    body: 'Open the link in Spotify’s email and download the archive. Extract it on your computer.',
+    body: 'Open the link in Spotify’s ready-to-download email and save the archive. Extract it on your computer.',
   },
   {
     title: 'Find the JSON files',
@@ -113,6 +140,3 @@ export const REQUEST_DATA_STEPS = [
     body: 'Drag the JSON files onto this site or use the file picker on the home page. Processing stays in your browser.',
   },
 ] as const;
-
-export const SHORT_UPLOAD_DISCLAIMER =
-  'Files are processed locally in your browser and cleared when you leave this page.';

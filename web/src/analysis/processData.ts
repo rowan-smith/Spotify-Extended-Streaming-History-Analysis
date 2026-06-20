@@ -282,7 +282,7 @@ function buildYearTimeline(records: StreamRecord[], metric: SortMetric): Timelin
         label: String(year),
         value: bucket.value,
         sortKey: year,
-        topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
+        topItem: topSong ? `${topSong.trackName} · ${topSong.artistName}` : undefined,
       };
     });
 }
@@ -322,7 +322,7 @@ function buildDailyTimeline(records: StreamRecord[], metric: SortMetric): Timeli
         label: day,
         sortKey: day,
         value: bucket.value,
-        topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
+        topItem: topSong ? `${topSong.trackName} · ${topSong.artistName}` : undefined,
       };
     });
 }
@@ -360,10 +360,10 @@ function buildYearMonthTimeline(records: StreamRecord[]): TimelinePoint[] {
       const [year, month] = key.split('-');
       const topSong = topSongFromMap(bucket.songs, 'time');
       return {
-        label: `${year} — ${MONTH_NAMES[Number(month) - 1]}`,
+        label: `${year} · ${MONTH_NAMES[Number(month) - 1]}`,
         sortKey: key,
         value: bucket.value,
-        topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
+        topItem: topSong ? `${topSong.trackName} · ${topSong.artistName}` : undefined,
       };
     });
 }
@@ -427,7 +427,7 @@ function buildMonthSeasonality(records: StreamRecord[], metric: SortMetric): Tim
       label: MONTH_NAMES[bucket.month - 1],
       sortKey: bucket.month,
       value: bucket.value,
-      topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
+      topItem: topSong ? `${topSong.trackName} · ${topSong.artistName}` : undefined,
     };
   });
 }
@@ -465,7 +465,7 @@ function buildDayOfMonthSeasonality(records: StreamRecord[]): TimelinePoint[] {
       label: String(bucket.day),
       sortKey: bucket.day,
       value: bucket.value,
-      topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
+      topItem: topSong ? `${topSong.trackName} · ${topSong.artistName}` : undefined,
     };
   });
 }
@@ -502,7 +502,7 @@ function buildHourDistribution(records: StreamRecord[]): TimelinePoint[] {
       label: formatHourLabelLocal(bucket.hour),
       sortKey: bucket.hour,
       value: bucket.value,
-      topItem: topSong ? `${topSong.trackName} — ${topSong.artistName}` : undefined,
+      topItem: topSong ? `${topSong.trackName} · ${topSong.artistName}` : undefined,
     };
   });
 }

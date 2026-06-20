@@ -1,6 +1,6 @@
 # Spotify Extended Streaming History Analysis
 
-Explore your Spotify Extended Streaming History in the browser. Upload JSON exports, filter your listening data, and browse interactive charts — all processed locally on your device.
+Explore your Spotify Extended Streaming History in the browser. Upload JSON exports, filter your listening data, and browse interactive charts, all processed locally on your device.
 
 **Live site:** [rowan-smith.github.io/Spotify-Extended-Streaming-History-Analysis](https://rowan-smith.github.io/Spotify-Extended-Streaming-History-Analysis/)
 
@@ -43,7 +43,7 @@ Contributions are welcome.
 
 ### Guidelines
 
-- Keep analysis client-side — do not add backends that receive user exports.
+- Keep analysis client-side. Do not add backends that receive user exports.
 - Match existing TypeScript/React patterns in `/web/src`.
 - Prefer focused PRs over large mixed changes.
 - Update assumptions or data-handling copy when filter behaviour changes.

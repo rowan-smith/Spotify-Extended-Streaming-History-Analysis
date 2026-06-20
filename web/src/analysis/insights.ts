@@ -47,7 +47,7 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
     facts.push({
       title: 'Most repeated track',
       value: `${mostRepeated.count.toLocaleString()} plays`,
-      detail: `${mostRepeated.trackName} — ${mostRepeated.artistName}`,
+      detail: `${mostRepeated.trackName} · ${mostRepeated.artistName}`,
     });
   }
 
@@ -88,7 +88,7 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
     facts.push({
       title: 'Biggest binge day',
       value: `${binge.plays.toLocaleString()} plays`,
-      detail: `${binge.day} — top track: ${binge.topTrack}`,
+      detail: `${binge.day}: top track ${binge.topTrack}`,
     });
   }
 
@@ -227,12 +227,12 @@ function computeSkipRate(records: StreamRecord[]): { label: string; detail: stri
   if (ratio < 0.35) {
     return {
       label: 'Balanced explorer',
-      detail: `${(ratio * 100).toFixed(0)}% skip rate — you sample freely but still finish plenty.`,
+      detail: `${(ratio * 100).toFixed(0)}% skip rate. You sample freely but still finish plenty.`,
     };
   }
   return {
     label: 'Restless curator',
-    detail: `${(ratio * 100).toFixed(0)}% of plays were skips — lots of short auditions.`,
+    detail: `${(ratio * 100).toFixed(0)}% of plays were skips. Lots of short auditions.`,
   };
 }
 

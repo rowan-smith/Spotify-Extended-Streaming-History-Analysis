@@ -33,20 +33,6 @@ interface DashboardProps {
   theme: Theme;
 }
 
-const tabs: { id: TabId; label: string }[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'songs', label: 'Songs' },
-  { id: 'artists', label: 'Artists' },
-  { id: 'timeline', label: 'Timeline' },
-  { id: 'patterns', label: 'Patterns' },
-  { id: 'explore', label: 'Explore' },
-  { id: 'assumptions', label: 'Assumptions' },
-];
-
-export function tabLabels(): { id: TabId; label: string }[] {
-  return tabs;
-}
-
 function RankedBarChart({
   title,
   subtitle,
@@ -587,7 +573,7 @@ export function Dashboard({
               layout={{
                 ...plotTheme.layout,
                 height: 360,
-                xaxis: { title: { text: 'Year — month' }, gridcolor: plotTheme.grid, tickangle: -45 },
+                xaxis: { title: { text: 'Year, month' }, gridcolor: plotTheme.grid, tickangle: -45 },
                 yaxis: { title: { text: 'Hours' }, gridcolor: plotTheme.grid },
               }}
               config={{ displayModeBar: false, responsive: true }}

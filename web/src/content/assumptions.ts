@@ -66,7 +66,7 @@ export const ASSUMPTIONS: Assumption[] = [
 ];
 
 export const UPLOAD_DISCLAIMER =
-  'I understand my files are processed locally in this browser tab and cleared when I leave.';
+  'By uploading your files, you agree they are processed locally in this browser tab and cleared when you leave.';
 
 export const PRIVACY_POINTS = [
   'Your JSON files are read locally using standard browser file APIs.',

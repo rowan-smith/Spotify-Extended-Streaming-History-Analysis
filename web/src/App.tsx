@@ -1,34 +1,56 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   createDefaultFilters,
   filterRecords,
   getFilterContext,
 } from './analysis/filters';
 import { analyzeRecords, loadRecordsFromFiles } from './analysis/processData';
-import { AssumptionsPage } from './components/AssumptionsPage';
 import { AssumptionsPanel } from './components/AssumptionsPanel';
-import { Dashboard, tabLabels } from './components/Dashboard';
-import { DataHandlingPage } from './components/DataHandlingPage';
-import { FilterBar } from './components/FilterBar';
 import { LandingPage } from './components/LandingPage';
+import { OpenSourceLinks } from './components/OpenSourceLinks';
 import { PrivacyBanner } from './components/PrivacyBanner';
-import { RequestDataPage } from './components/RequestDataPage';
 import { ThemeToggle } from './components/ThemeToggle';
-import { CONTRIBUTING_URL, ISSUES_URL, REPO_URL } from './content/siteContent';
+import { DASHBOARD_TABS } from './content/dashboardTabs';
 import { useTheme } from './hooks/useTheme';
 import type { AnalysisFilters, AppView, StreamRecord, TabId } from './types';
 
+const Dashboard = lazy(() =>
+  import('./components/Dashboard').then((module) => ({ default: module.Dashboard })),
+);
+const FilterBar = lazy(() =>
+  import('./components/FilterBar').then((module) => ({ default: module.FilterBar })),
+);
+const AssumptionsPage = lazy(() =>
+  import('./components/AssumptionsPage').then((module) => ({ default: module.AssumptionsPage })),
+);
+const DataHandlingPage = lazy(() =>
+  import('./components/DataHandlingPage').then((module) => ({ default: module.DataHandlingPage })),
+);
+const RequestDataPage = lazy(() =>
+  import('./components/RequestDataPage').then((module) => ({ default: module.RequestDataPage })),
+);
+
+function prefetchDashboardBundle() {
+  void import('./components/Dashboard');
+  void import('./components/FilterBar');
+}
+
+function ViewFallback() {
+  return <p className="view-loading">Loading…</p>;
+}
+
 export default function App() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, preference, setTheme } = useTheme();
   const [view, setView] = useState<AppView>('landing');
+  const [navOpen, setNavOpen] = useState(false);
   const [allRecords, setAllRecords] = useState<StreamRecord[]>([]);
   const [bounds, setBounds] = useState({ yearMin: 0, yearMax: 0 });
   const [filters, setFilters] = useState<AnalysisFilters>(createDefaultFilters(0, 0));
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSampleData, setIsSampleData] = useState(false);
 
-  const tabs = useMemo(() => tabLabels(), []);
   const filterContext = useMemo(() => getFilterContext(filters), [filters]);
 
   const filteredRecords = useMemo(
@@ -43,21 +65,61 @@ export default function App() {
     return analyzeRecords(filteredRecords, filters.topN);
   }, [filteredRecords, filters.topN]);
 
+  useEffect(() => {
+    if (view === 'landing' || view === 'request-data') {
+      prefetchDashboardBundle();
+    }
+  }, [view]);
+
+  function navigate(nextView: AppView) {
+    setView(nextView);
+    setNavOpen(false);
+  }
+
+  useEffect(() => {
+    if (!navOpen) {
+      return;
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setNavOpen(false);
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [navOpen]);
+
+  function applyRecords(records: StreamRecord[], sample: boolean) {
+    const sorted = [...records].sort((left, right) => left.ts.getTime() - right.ts.getTime());
+    const yearMin = sorted[0]?.ts.getUTCFullYear() ?? new Date().getFullYear();
+    const yearMax =
+      sorted[sorted.length - 1]?.ts.getUTCFullYear() ?? new Date().getFullYear();
+
+    setAllRecords(sorted);
+    setBounds({ yearMin, yearMax });
+    setFilters(createDefaultFilters(yearMin, yearMax));
+    setActiveTab('overview');
+    setIsSampleData(sample);
+    setView('dashboard');
+    setNavOpen(false);
+  }
+
   async function handleFilesSelected(files: File[]) {
     setLoading(true);
     setError(null);
+    prefetchDashboardBundle();
 
     try {
       const records = await loadRecordsFromFiles(files);
-      const yearMin = records[0]?.ts.getUTCFullYear() ?? new Date().getFullYear();
-      const yearMax =
-        records[records.length - 1]?.ts.getUTCFullYear() ?? new Date().getFullYear();
-
-      setAllRecords(records);
-      setBounds({ yearMin, yearMax });
-      setFilters(createDefaultFilters(yearMin, yearMax));
-      setActiveTab('overview');
-      setView('dashboard');
+      applyRecords(records, false);
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : 'Failed to process JSON files.';
@@ -68,27 +130,34 @@ export default function App() {
     }
   }
 
+  async function handleSampleDataSelected() {
+    setLoading(true);
+    setError(null);
+    prefetchDashboardBundle();
+
+    try {
+      const { loadSampleRecords } = await import('./data/sampleStreamingHistory');
+      applyRecords(loadSampleRecords(), true);
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : 'Failed to load sample data.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function resetAnalysis() {
     setAllRecords([]);
     setError(null);
+    setIsSampleData(false);
     setActiveTab('overview');
     setView('landing');
   }
 
-  function openAssumptions() {
-    setView('assumptions');
-  }
-
-  function openDataHandling() {
-    setView('data-handling');
-  }
-
-  function openRequestData() {
-    setView('request-data');
-  }
-
   function returnToMain() {
     setView(allRecords.length > 0 ? 'dashboard' : 'landing');
+    setNavOpen(false);
   }
 
   return (
@@ -98,39 +167,44 @@ export default function App() {
           <button
             type="button"
             className="site-brand"
-            onClick={() => setView(allRecords.length > 0 ? 'dashboard' : 'landing')}
+            onClick={() => navigate(allRecords.length > 0 ? 'dashboard' : 'landing')}
           >
             <span className="site-brand__mark" aria-hidden="true">
               ♫
             </span>
-            <span>Spotify History Explorer</span>
+            <span className="site-brand__name">Spotify History Explorer</span>
           </button>
-          <nav className="site-nav" aria-label="Site sections">
+
+          <nav
+            id="site-nav"
+            className={`site-nav${navOpen ? ' site-nav--open' : ''}`}
+            aria-label="Site sections"
+          >
             <button
               type="button"
               className={`site-nav__link${view === 'landing' ? ' site-nav__link--active' : ''}`}
-              onClick={() => setView('landing')}
+              onClick={() => navigate('landing')}
             >
               Home
             </button>
             <button
               type="button"
               className={`site-nav__link${view === 'request-data' ? ' site-nav__link--active' : ''}`}
-              onClick={openRequestData}
+              onClick={() => navigate('request-data')}
             >
               Get your data
             </button>
             <button
               type="button"
               className={`site-nav__link${view === 'assumptions' ? ' site-nav__link--active' : ''}`}
-              onClick={openAssumptions}
+              onClick={() => navigate('assumptions')}
             >
               Assumptions
             </button>
             <button
               type="button"
               className={`site-nav__link${view === 'data-handling' ? ' site-nav__link--active' : ''}`}
-              onClick={openDataHandling}
+              onClick={() => navigate('data-handling')}
             >
               Data handling
             </button>
@@ -138,54 +212,77 @@ export default function App() {
               <button
                 type="button"
                 className={`site-nav__link${view === 'dashboard' ? ' site-nav__link--active' : ''}`}
-                onClick={() => setView('dashboard')}
+                onClick={() => navigate('dashboard')}
               >
                 Your stats
               </button>
             ) : null}
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </nav>
+
+          <div className="site-header__tools">
+            <ThemeToggle preference={preference} onChange={setTheme} />
+            <div className="site-header__github">
+              <OpenSourceLinks />
+            </div>
+            <button
+              type="button"
+              className="site-nav__menu"
+              aria-expanded={navOpen}
+              aria-controls="site-nav"
+              onClick={() => setNavOpen((open) => !open)}
+            >
+              <span className="site-nav__menu-icon" aria-hidden="true" />
+              <span className="visually-hidden">{navOpen ? 'Close menu' : 'Open menu'}</span>
+            </button>
+          </div>
         </div>
       </header>
 
       {view === 'dashboard' ? (
-        <PrivacyBanner compact onOpenDataHandling={openDataHandling} />
+        <PrivacyBanner compact onOpenDataHandling={() => navigate('data-handling')} />
       ) : null}
 
       <main className="main-content">
         {view === 'landing' ? (
           <LandingPage
-            onOpenDataHandling={openDataHandling}
-            onOpenRequestData={openRequestData}
+            onOpenDataHandling={() => navigate('data-handling')}
+            onOpenRequestData={() => navigate('request-data')}
             onFilesSelected={handleFilesSelected}
+            onLoadSampleData={handleSampleDataSelected}
             loading={loading}
             error={error}
           />
         ) : null}
 
         {view === 'assumptions' ? (
-          <AssumptionsPage
-            onBack={returnToMain}
-            backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <AssumptionsPage
+              onBack={returnToMain}
+              backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+            />
+          </Suspense>
         ) : null}
 
         {view === 'data-handling' ? (
-          <DataHandlingPage
-            onBack={returnToMain}
-            backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <DataHandlingPage
+              onBack={returnToMain}
+              backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+            />
+          </Suspense>
         ) : null}
 
         {view === 'request-data' ? (
-          <RequestDataPage
-            onBack={returnToMain}
-            backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <RequestDataPage
+              onBack={returnToMain}
+              backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+            />
+          </Suspense>
         ) : null}
 
         {view === 'dashboard' && allRecords.length > 0 ? (
-          <>
+          <Suspense fallback={<ViewFallback />}>
             <FilterBar
               filters={filters}
               bounds={bounds}
@@ -198,16 +295,17 @@ export default function App() {
               <>
                 <div className="toolbar">
                   <div className="toolbar__summary">
+                    {isSampleData ? <span className="toolbar__badge">Sample data</span> : null}
                     <strong>{analysis.overview.totalPlays.toLocaleString()} plays</strong>
                     <span>{filterContext.spanLabel}</span>
                   </div>
                   <button type="button" className="button button--ghost" onClick={resetAnalysis}>
-                    Load different files
+                    {isSampleData ? 'Exit sample' : 'Load different files'}
                   </button>
                 </div>
 
                 <nav className="tab-nav" aria-label="Dashboard sections">
-                  {tabs.map((tab) => (
+                  {DASHBOARD_TABS.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
@@ -222,7 +320,7 @@ export default function App() {
                 </nav>
 
                 {activeTab === 'assumptions' ? (
-                  <AssumptionsPanel />
+                  <AssumptionsPanel variant="panel" />
                 ) : (
                   <Dashboard
                     analysis={analysis}
@@ -239,26 +337,12 @@ export default function App() {
                 search.
               </p>
             )}
-          </>
+          </Suspense>
         ) : null}
       </main>
 
       <footer className="site-footer">
-        <p>
-          Open source —{' '}
-          <a href={REPO_URL} target="_blank" rel="noreferrer">
-            view on GitHub
-          </a>
-          ,{' '}
-          <a href={ISSUES_URL} target="_blank" rel="noreferrer">
-            report an issue
-          </a>
-          ,{' '}
-          <a href={CONTRIBUTING_URL} target="_blank" rel="noreferrer">
-            contribute
-          </a>
-          . Analysis runs in your browser; data clears when you leave.
-        </p>
+        <p>&copy; {new Date().getFullYear()} Rowan Smith. All rights reserved.</p>
       </footer>
     </div>
   );

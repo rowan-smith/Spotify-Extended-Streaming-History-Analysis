@@ -3,19 +3,26 @@ import { UPLOAD_DISCLAIMER } from '../content/assumptions';
 import { InfoTooltip } from './InfoTooltip';
 
 interface FileUploadProps {
+  onOpenRequestData?: () => void;
+  onLoadSampleData?: () => void;
   onFilesSelected: (files: File[]) => void;
   loading: boolean;
   error: string | null;
 }
 
-export function FileUpload({ onFilesSelected, loading, error }: FileUploadProps) {
+export function FileUpload({
+  onOpenRequestData,
+  onLoadSampleData,
+  onFilesSelected,
+  loading,
+  error,
+}: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
-  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   function handleFiles(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0 || !disclaimerAccepted) {
+    if (!fileList || fileList.length === 0) {
       return;
     }
 
@@ -41,24 +48,9 @@ export function FileUpload({ onFilesSelected, loading, error }: FileUploadProps)
 
   return (
     <section className="upload-panel upload-panel--hero">
-      <label className="disclaimer-box disclaimer-box--inline">
-        <input
-          type="checkbox"
-          checked={disclaimerAccepted}
-          onChange={(event) => setDisclaimerAccepted(event.target.checked)}
-        />
-        <span>{UPLOAD_DISCLAIMER}</span>
-        <InfoTooltip text="Your JSON is parsed in-memory in this tab only. Close the tab to clear it." />
-      </label>
-
       <div
-        className={`dropzone dropzone--hero${dragActive ? ' dropzone--active' : ''}${
-          !disclaimerAccepted ? ' dropzone--disabled' : ''
-        }`}
+        className={`dropzone dropzone--hero${dragActive ? ' dropzone--active' : ''}`}
         onDragOver={(event) => {
-          if (!disclaimerAccepted) {
-            return;
-          }
           event.preventDefault();
           setDragActive(true);
         }}
@@ -67,27 +59,52 @@ export function FileUpload({ onFilesSelected, loading, error }: FileUploadProps)
       >
         <p className="dropzone__title">Drop your Spotify JSON here</p>
         <p className="dropzone__text">
-          Extended <code>Streaming_History_*.json</code> files or legacy exports — select
+          Extended <code>Streaming_History_*.json</code> files or legacy exports. Select
           multiple if your download is split.
         </p>
-        <button
-          type="button"
-          className="button button--primary button--large"
-          disabled={loading || !disclaimerAccepted}
-          onClick={() => inputRef.current?.click()}
-        >
-          {loading ? 'Processing…' : 'Choose JSON files'}
-        </button>
-        {!disclaimerAccepted ? (
-          <p className="dropzone__hint">Check the box above to enable upload.</p>
+        {onOpenRequestData ? (
+          <p className="dropzone__help">
+            Don&apos;t have your export yet?{' '}
+            <button type="button" className="text-link" onClick={onOpenRequestData}>
+              Get your data
+            </button>
+          </p>
         ) : null}
+        <div className="dropzone__actions">
+          <button
+            type="button"
+            className="button button--primary button--large"
+            disabled={loading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {loading ? 'Processing…' : 'Choose JSON files'}
+          </button>
+          {onLoadSampleData ? (
+            <button
+              type="button"
+              className="button button--ghost button--large"
+              disabled={loading}
+              onClick={onLoadSampleData}
+            >
+              Try sample data
+            </button>
+          ) : null}
+        </div>
+        {onLoadSampleData ? (
+          <p className="dropzone__sample-note">
+            Preview the dashboard with fictional demo data while you wait for your export.
+          </p>
+        ) : null}
+        <p className="upload-disclaimer">
+          {UPLOAD_DISCLAIMER}
+          <InfoTooltip text="Your JSON is parsed in-memory in this tab only. Close the tab to clear it." />
+        </p>
         <input
           ref={inputRef}
           type="file"
           accept=".json,application/json"
           multiple
           hidden
-          disabled={!disclaimerAccepted}
           onChange={onInputChange}
         />
         {selectedNames.length > 0 ? (

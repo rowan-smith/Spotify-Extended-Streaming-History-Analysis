@@ -35,7 +35,9 @@ export async function parseJsonFiles(files: File[]): Promise<RawRecord[]> {
     const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
 
     if (Array.isArray(parsed)) {
-      records.push(...parsed);
+      for (const record of parsed) {
+        records.push(record);
+      }
     } else {
       records.push(parsed);
     }
@@ -560,7 +562,7 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
   }
 
   const dayCount = new Set(records.map((record) => dateKey(record.ts))).size;
-  const years = records.map((record) => record.ts.getUTCFullYear());
+  const fallbackYear = new Date().getUTCFullYear();
 
   return {
     totalPlays: records.length,
@@ -569,8 +571,8 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
     uniqueArtists: uniqueArtists.size,
     earliest: records[0] ?? null,
     latest: records[records.length - 1] ?? null,
-    yearMin: years.length > 0 ? Math.min(...years) : new Date().getUTCFullYear(),
-    yearMax: years.length > 0 ? Math.max(...years) : new Date().getUTCFullYear(),
+    yearMin: records[0]?.ts.getUTCFullYear() ?? fallbackYear,
+    yearMax: records[records.length - 1]?.ts.getUTCFullYear() ?? fallbackYear,
     totalCompleted: completed,
     totalSkipped: skipped,
     avgCompletedPerDay:

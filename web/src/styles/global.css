@@ -737,6 +737,7 @@ code {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   gap: 0.5rem;
@@ -744,6 +745,27 @@ code {
   padding-bottom: 0.15rem;
   width: 100%;
   min-width: 0;
+  position: relative;
+}
+
+@supports (mask-image: linear-gradient(to right, transparent, black)) or
+          (-webkit-mask-image: linear-gradient(to right, transparent, black)) {
+  .tab-nav {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 0.75rem,
+      black calc(100% - 0.75rem),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 0.75rem,
+      black calc(100% - 0.75rem),
+      transparent 100%
+    );
+  }
 }
 
 .tab-nav::-webkit-scrollbar {
@@ -927,8 +949,8 @@ code {
   gap: 0.65rem;
   flex-wrap: wrap;
   min-width: 0;
-  width: 100%;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .wrapped-tab {
@@ -1947,6 +1969,15 @@ code {
   .stat-card,
   .insight-card {
     padding: 0.85rem;
+  }
+
+  .dashboard-chrome {
+    gap: 0.65rem;
+  }
+
+  .dashboard-chrome__actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 

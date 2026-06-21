@@ -746,26 +746,38 @@ code {
   width: 100%;
   min-width: 0;
   position: relative;
+  mask-image: none;
+  -webkit-mask-image: none;
 }
 
-@supports (mask-image: linear-gradient(to right, transparent, black)) or
-          (-webkit-mask-image: linear-gradient(to right, transparent, black)) {
-  .tab-nav {
-    mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black 0.75rem,
-      black calc(100% - 0.75rem),
-      transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black 0.75rem,
-      black calc(100% - 0.75rem),
-      transparent 100%
-    );
-  }
+.dashboard-chrome__tabs {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dashboard-chrome__tabs::before,
+.dashboard-chrome__tabs::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 2.9rem;
+  width: 1.25rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dashboard-chrome__tabs::before {
+  display: none;
+}
+
+.dashboard-chrome__tabs::after {
+  right: 0;
+  background: linear-gradient(to left, var(--bg), transparent);
 }
 
 .tab-nav::-webkit-scrollbar {

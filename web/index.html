@@ -11,22 +11,23 @@
     <link id="app-favicon" rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <script>
       (function () {
-        var stored = localStorage.getItem('spotify-history-theme');
-        var theme =
+        const stored = localStorage.getItem('spotify-history-theme');
+        const theme =
           stored === 'light' || stored === 'dark'
             ? stored
             : window.matchMedia('(prefers-color-scheme: light)').matches
               ? 'light'
               : 'dark';
         document.documentElement.dataset.theme = theme;
-        var favicon = document.getElementById('app-favicon');
+        const favicon = document.getElementById('app-favicon');
         if (favicon) {
           favicon.href = theme === 'dark' ? './favicon-dark.svg' : './favicon.svg';
         }
       })();
     </script>
-    <!-- Cloudflare Web Analytics: replace YOUR_TOKEN with your beacon token from the Cloudflare dashboard -->
-    <!-- <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "YOUR_TOKEN"}'></script> -->
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "8117ad06927b43a88f0760ce925090ec"}'></script>
+    <!-- End Cloudflare Web Analytics -->
   </head>
   <body>
     <div id="root"></div>

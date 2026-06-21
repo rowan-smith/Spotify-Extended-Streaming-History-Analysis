@@ -735,9 +735,19 @@ code {
 
 .tab-nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
+  padding-bottom: 0.15rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.tab-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-nav__button {
@@ -747,6 +757,9 @@ code {
   border-radius: 999px;
   padding: 0.55rem 1rem;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  touch-action: pan-x;
 }
 
 .tab-nav__button--active {
@@ -759,6 +772,7 @@ code {
 .dashboard-grid {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .overview-section__title {
@@ -882,6 +896,8 @@ code {
   gap: 1rem;
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .dashboard-chrome__tabs {
@@ -909,7 +925,10 @@ code {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .wrapped-tab {
@@ -1589,6 +1608,7 @@ code {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 0.85rem;
+  min-width: 0;
 }
 
 .data-table table {
@@ -1650,10 +1670,6 @@ code {
     align-items: stretch;
   }
 
-  .dashboard-chrome__actions {
-    justify-content: space-between;
-  }
-
   .site-header__inner {
     display: flex;
     flex-wrap: wrap;
@@ -1708,7 +1724,6 @@ code {
     padding-bottom: 1.15rem;
   }
 
-  .tab-nav,
   .metric-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -1717,12 +1732,10 @@ code {
     padding-bottom: 0.15rem;
   }
 
-  .tab-nav::-webkit-scrollbar,
   .metric-tabs::-webkit-scrollbar {
     display: none;
   }
 
-  .tab-nav__button,
   .metric-tabs__button {
     flex-shrink: 0;
   }
@@ -1950,6 +1963,21 @@ code {
 
   .site-header__tools {
     gap: 0.2rem;
+  }
+
+  .dashboard-chrome__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .dashboard-chrome__actions .button {
+    width: 100%;
+  }
+
+  .dashboard-chrome__actions .toolbar__badge {
+    align-self: flex-start;
   }
 }
 

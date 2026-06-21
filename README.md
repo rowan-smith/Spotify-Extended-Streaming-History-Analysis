@@ -2,16 +2,6 @@
 
 Explore your Spotify Extended Streaming History in the browser. Upload JSON exports, filter your listening data, and browse interactive charts, all processed locally on your device.
 
-**Live site:** [rowan-smith.github.io/Spotify-Extended-Streaming-History-Analysis](https://rowan-smith.github.io/Spotify-Extended-Streaming-History-Analysis/)
-
-## Quick start (users)
-
-1. [Request your extended streaming history](https://www.spotify.com/account/privacy/) from Spotify (see **Get your data** in the app for steps).
-2. Extract the ZIP and find `Streaming_History_*.json` files (extended or legacy format).
-3. Open the site, accept the short disclaimer, and drag your JSON files onto the upload area.
-
-Nothing is uploaded to a backend. Data stays in memory until you close the tab.
-
 ## Development
 
 The web app source lives in `/web`. Production builds output to `/docs` for GitHub Pages.
@@ -22,11 +12,6 @@ npm install
 npm run dev      # local development
 npm run build    # build to /docs
 ```
-
-### Enable GitHub Pages
-
-1. Push to GitHub.
-2. **Settings → Pages →** deploy from branch `main`, folder `/docs`.
 
 ### Cloudflare Web Analytics (optional)
 
@@ -51,10 +36,6 @@ Contributions are welcome.
 ## Report issues
 
 Bug reports and feature requests: [GitHub Issues](https://github.com/rowan-smith/Spotify-Extended-Streaming-History-Analysis/issues)
-
-## Assumptions
-
-See the **Assumptions** page in the app for how stats are calculated (play counts, sessions, UTC vs local time, content filters, etc.).
 
 ## License
 

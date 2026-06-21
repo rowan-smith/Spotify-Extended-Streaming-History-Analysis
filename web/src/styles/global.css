@@ -735,53 +735,20 @@ code {
 
 .tab-nav {
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
-  padding-bottom: 0.15rem;
   width: 100%;
   min-width: 0;
-  position: relative;
-  mask-image: none;
-  -webkit-mask-image: none;
 }
 
 .dashboard-chrome__tabs {
-  position: relative;
-  overflow: hidden;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-}
-
-.dashboard-chrome__tabs::before,
-.dashboard-chrome__tabs::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  height: 2.9rem;
-  width: 1.25rem;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.dashboard-chrome__tabs::before {
-  display: none;
-}
-
-.dashboard-chrome__tabs::after {
-  right: 0;
-  background: linear-gradient(to left, var(--bg), transparent);
-}
-
-.tab-nav::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
+  position: static;
 }
 
 .tab-nav__button {
@@ -791,9 +758,7 @@ code {
   border-radius: 999px;
   padding: 0.55rem 1rem;
   cursor: pointer;
-  flex-shrink: 0;
   white-space: nowrap;
-  touch-action: pan-x;
 }
 
 .tab-nav__button--active {
@@ -932,14 +897,6 @@ code {
   margin-bottom: 1.25rem;
   min-width: 0;
   overflow-x: hidden;
-}
-
-.dashboard-chrome__tabs {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
 }
 
 .dashboard-chrome__tabs .tab-nav,
@@ -1786,6 +1743,23 @@ code {
 }
 
 @media (max-width: 640px) {
+  .tab-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0;
+  }
+
+  .tab-nav__button {
+    width: 100%;
+    min-width: 0;
+    padding: 0.7rem 0.75rem;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.15;
+    min-height: 0;
+  }
+
   .main-content {
     padding-top: 1rem;
     padding-bottom: 1rem;
@@ -2021,6 +1995,12 @@ code {
 
   .dashboard-chrome__actions .toolbar__badge {
     align-self: flex-start;
+  }
+}
+
+@media (max-width: 380px) {
+  .tab-nav {
+    grid-template-columns: 1fr;
   }
 }
 

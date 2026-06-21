@@ -93,6 +93,66 @@ function RankedBarChart({
   );
 }
 
+function MobileRankedList({
+  items,
+  metricLabel,
+}: {
+  items: Array<{
+    primary: string;
+    secondary?: string;
+    value: number;
+    valueText: string;
+    meta?: string;
+  }>;
+  metricLabel: string;
+}) {
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
+
+  return (
+    <div className="ranked-list" role="list">
+      {items.map((item, index) => {
+        const width = Math.max(6, (item.value / maxValue) * 100);
+
+        return (
+          <article
+            key={`${item.primary}-${item.secondary ?? index}`}
+            className="ranked-list__item"
+            role="listitem"
+          >
+            <div className="ranked-list__rank">{index + 1}</div>
+
+            <div className="ranked-list__body">
+              <div className="ranked-list__top">
+                <div className="ranked-list__labels">
+                  <p className="ranked-list__primary" title={item.primary}>
+                    {item.primary}
+                  </p>
+                  {item.secondary ? (
+                    <p className="ranked-list__secondary" title={item.secondary}>
+                      {item.secondary}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="ranked-list__metric">
+                  <p className="ranked-list__value">{item.valueText}</p>
+                  <p className="ranked-list__metric-label">{metricLabel}</p>
+                </div>
+              </div>
+
+              <div className="ranked-list__barTrack" aria-hidden="true">
+                <div className="ranked-list__barFill" style={{ width: `${width}%` }} />
+              </div>
+
+              {item.meta ? <p className="ranked-list__meta">{item.meta}</p> : null}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function YearDrilldownChart({
   title,
   years,
@@ -113,24 +173,59 @@ function YearDrilldownChart({
   const [year, setYear] = useState(years[years.length - 1] ?? new Date().getFullYear());
   const [sortMetric, setSortMetric] = useState<SortMetric>('plays');
   const plotTheme = getPlotTheme(theme === 'dark');
+
   const rows = (sortMetric === 'plays' ? dataByPlays[year] : dataByTime[year]) ?? [];
+
   const labels = rows.map((row) =>
-    labelKey === 'trackName' ? (row as SongStats).trackName : (row as ArtistStats).artistName,
+    labelKey === 'trackName'
+      ? (row as SongStats).trackName
+      : (row as ArtistStats).artistName,
   );
+
   const values = rows.map((row) => {
     if (sortMetric === 'plays') {
       return 'numPlays' in row ? row.numPlays : row.listenCount;
     }
     return row.totalHours;
   });
+
   const hover = rows.map((row) => {
+    const label =
+      labelKey === 'trackName'
+        ? (row as SongStats).trackName
+        : (row as ArtistStats).artistName;
+
     if (sortMetric === 'plays') {
-      return `${formatHours(row.totalHours)} total`;
+      return `${label}<br>${formatHours(row.totalHours)} total`;
     }
+
     const plays = 'numPlays' in row ? row.numPlays : row.listenCount;
-    return `${plays.toLocaleString()} plays`;
+    return `${label}<br>${plays.toLocaleString()} plays`;
   });
+
   const chartLayout = rankedBarChartLayout(labels.length, compact);
+
+  const mobileItems = rows.map((row) => {
+    const primary =
+      labelKey === 'trackName'
+        ? (row as SongStats).trackName
+        : (row as ArtistStats).artistName;
+
+    const plays = 'numPlays' in row ? row.numPlays : row.listenCount;
+
+    return {
+      primary,
+      value: sortMetric === 'plays' ? plays : row.totalHours,
+      valueText:
+        sortMetric === 'plays'
+          ? plays.toLocaleString()
+          : formatHours(row.totalHours),
+      meta:
+        sortMetric === 'plays'
+          ? `${formatHours(row.totalHours)} total`
+          : `${plays.toLocaleString()} plays`,
+    };
+  });
 
   return (
     <ChartCard title={title} subtitle="Pick a year and metric to explore yearly rankings.">
@@ -140,6 +235,7 @@ function YearDrilldownChart({
         playsInfo={PLAYS_VS_TIME_INFO.plays}
         timeInfo={PLAYS_VS_TIME_INFO.time}
       />
+
       <div className="inline-controls">
         <label className="filter-control">
           <span>Year</span>
@@ -152,31 +248,45 @@ function YearDrilldownChart({
           </select>
         </label>
       </div>
-      <Plot
-        data={[
-          horizontalBarChart(labels, values, hover, sortMetric === 'plays' ? 'Plays' : 'Hours', {
-            inlineLabels: chartLayout.inlineLabels,
-            accent: plotTheme.accent,
-          }),
-        ]}
-        layout={{
-          ...plotTheme.layout,
-          height: chartLayout.height,
-          bargap: labels.length > 30 ? 0.08 : 0.15,
-          xaxis: {
-            title: { text: sortMetric === 'plays' ? 'Plays' : 'Hours' },
-            gridcolor: plotTheme.grid,
-          },
-          yaxis: {
-            automargin: !chartLayout.inlineLabels,
-            showticklabels: !chartLayout.inlineLabels,
-            tickfont: labels.length > 40 ? { size: 10 } : undefined,
-          },
-        }}
-        config={{ displayModeBar: false, responsive: true }}
-        style={{ width: '100%' }}
-        useResizeHandler
-      />
+
+      {compact ? (
+        <MobileRankedList
+          metricLabel={sortMetric === 'plays' ? 'Plays' : 'Hours'}
+          items={mobileItems}
+        />
+      ) : (
+        <Plot
+          data={[
+            horizontalBarChart(
+              labels,
+              values,
+              hover,
+              sortMetric === 'plays' ? 'Plays' : 'Hours',
+              {
+                inlineLabels: chartLayout.inlineLabels,
+                accent: plotTheme.accent,
+              },
+            ),
+          ]}
+          layout={{
+            ...plotTheme.layout,
+            height: chartLayout.height,
+            bargap: labels.length > 30 ? 0.08 : 0.15,
+            xaxis: {
+              title: { text: sortMetric === 'plays' ? 'Plays' : 'Hours' },
+              gridcolor: plotTheme.grid,
+            },
+            yaxis: {
+              automargin: !chartLayout.inlineLabels,
+              showticklabels: !chartLayout.inlineLabels,
+              tickfont: labels.length > 40 ? { size: 10 } : undefined,
+            },
+          }}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%' }}
+          useResizeHandler
+        />
+      )}
     </ChartCard>
   );
 }
@@ -211,19 +321,43 @@ function SongsTab({
         {metric === 'plays' ? PLAYS_VS_TIME_INFO.plays : PLAYS_VS_TIME_INFO.time}
       </p>
 
-      <RankedBarChart
-        title={`Top ${topNLabel} songs by ${metric === 'plays' ? 'plays' : 'playtime'}`}
-        labels={songs.map((song) => song.trackName)}
-        values={songs.map((song) => (metric === 'plays' ? song.numPlays : song.totalHours))}
-        hover={songs.map((song) =>
-          metric === 'plays'
-            ? `${song.artistName}<br>${formatHours(song.totalHours)} total`
-            : `${song.artistName}<br>${song.numPlays.toLocaleString()} plays`,
-        )}
-        xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
-        theme={theme}
-        compact={compact}
-      />
+      {compact ? (
+        <ChartCard
+          title={`Top ${topNLabel} songs by ${metric === 'plays' ? 'plays' : 'playtime'}`}
+          subtitle="Ranked list optimised for smaller screens."
+        >
+          <MobileRankedList
+            metricLabel={metric === 'plays' ? 'Plays' : 'Hours'}
+            items={songs.map((song) => ({
+              primary: song.trackName,
+              secondary: song.artistName,
+              value: metric === 'plays' ? song.numPlays : song.totalHours,
+              valueText:
+                metric === 'plays'
+                  ? song.numPlays.toLocaleString()
+                  : formatHours(song.totalHours),
+              meta:
+                metric === 'plays'
+                  ? `${formatHours(song.totalHours)} total`
+                  : `${song.numPlays.toLocaleString()} plays`,
+            }))}
+          />
+        </ChartCard>
+      ) : (
+        <RankedBarChart
+          title={`Top ${topNLabel} songs by ${metric === 'plays' ? 'plays' : 'playtime'}`}
+          labels={songs.map((song) => song.trackName)}
+          values={songs.map((song) => (metric === 'plays' ? song.numPlays : song.totalHours))}
+          hover={songs.map((song) =>
+            metric === 'plays'
+              ? `${song.artistName}<br>${formatHours(song.totalHours)} total`
+              : `${song.artistName}<br>${song.numPlays.toLocaleString()} plays`,
+          )}
+          xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
+          theme={theme}
+          compact={compact}
+        />
+      )}
 
       {showMultiYearCharts ? (
         <YearDrilldownChart
@@ -270,21 +404,44 @@ function ArtistsTab({
         {metric === 'plays' ? PLAYS_VS_TIME_INFO.plays : PLAYS_VS_TIME_INFO.time}
       </p>
 
-      <RankedBarChart
-        title={`Top ${topNLabel} artists by ${metric === 'plays' ? 'plays' : 'playtime'}`}
-        labels={artists.map((artist) => artist.artistName)}
-        values={artists.map((artist) =>
-          metric === 'plays' ? artist.listenCount : artist.totalHours,
-        )}
-        hover={artists.map((artist) =>
-          metric === 'plays'
-            ? formatHours(artist.totalHours)
-            : `${artist.listenCount.toLocaleString()} plays`,
-        )}
-        xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
-        theme={theme}
-        compact={compact}
-      />
+      {compact ? (
+        <ChartCard
+          title={`Top ${topNLabel} artists by ${metric === 'plays' ? 'plays' : 'playtime'}`}
+          subtitle="Ranked list optimised for smaller screens."
+        >
+          <MobileRankedList
+            metricLabel={metric === 'plays' ? 'Plays' : 'Hours'}
+            items={artists.map((artist) => ({
+              primary: artist.artistName,
+              value: metric === 'plays' ? artist.listenCount : artist.totalHours,
+              valueText:
+                metric === 'plays'
+                  ? artist.listenCount.toLocaleString()
+                  : formatHours(artist.totalHours),
+              meta:
+                metric === 'plays'
+                  ? formatHours(artist.totalHours)
+                  : `${artist.listenCount.toLocaleString()} plays`,
+            }))}
+          />
+        </ChartCard>
+      ) : (
+        <RankedBarChart
+          title={`Top ${topNLabel} artists by ${metric === 'plays' ? 'plays' : 'playtime'}`}
+          labels={artists.map((artist) => artist.artistName)}
+          values={artists.map((artist) =>
+            metric === 'plays' ? artist.listenCount : artist.totalHours,
+          )}
+          hover={artists.map((artist) =>
+            metric === 'plays'
+              ? formatHours(artist.totalHours)
+              : `${artist.listenCount.toLocaleString()} plays`,
+          )}
+          xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
+          theme={theme}
+          compact={compact}
+        />
+      )}
 
       {showMultiYearCharts ? (
         <YearDrilldownChart

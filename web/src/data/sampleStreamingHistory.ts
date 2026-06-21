@@ -145,6 +145,7 @@ function buildSampleRawRecords(
           master_metadata_album_album_name: entry.album,
           reason_end: pickReasonEnd(skipped),
           skipped,
+          incognito_mode: faker.number.float({ min: 0, max: 1 }) < 0.02,
         });
 
         cursorMs += msPlayed + 15_000 + faker.number.int({ min: 0, max: 239_999 });

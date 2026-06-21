@@ -3,14 +3,13 @@ import {
   createDefaultFilters,
   filterRecords,
   getFilterContext,
+  rankingsTopN,
 } from './analysis/filters';
 import { analyzeRecords, loadRecordsFromFiles } from './analysis/processData';
-import { AssumptionsPanel } from './components/AssumptionsPanel';
 import { LandingPage } from './components/LandingPage';
 import { OpenSourceLinks } from './components/OpenSourceLinks';
-import { PrivacyBanner } from './components/PrivacyBanner';
 import { ThemeToggle } from './components/ThemeToggle';
-import { DASHBOARD_TABS } from './content/dashboardTabs';
+import { getDashboardTabs } from './content/dashboardTabs';
 import { useTheme } from './hooks/useTheme';
 import type { AnalysisFilters, AppView, StreamRecord, TabId } from './types';
 
@@ -46,12 +45,13 @@ export default function App() {
   const [allRecords, setAllRecords] = useState<StreamRecord[]>([]);
   const [bounds, setBounds] = useState({ yearMin: 0, yearMax: 0 });
   const [filters, setFilters] = useState<AnalysisFilters>(createDefaultFilters(0, 0));
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [activeTab, setActiveTab] = useState<TabId>('summary');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSampleData, setIsSampleData] = useState(false);
 
   const filterContext = useMemo(() => getFilterContext(filters), [filters]);
+  const dashboardTabs = useMemo(() => getDashboardTabs(filters.preset), [filters.preset]);
 
   const filteredRecords = useMemo(
     () => filterRecords(allRecords, filters),
@@ -62,8 +62,17 @@ export default function App() {
     if (filteredRecords.length === 0) {
       return null;
     }
-    return analyzeRecords(filteredRecords, filters.topN);
-  }, [filteredRecords, filters.topN]);
+    return analyzeRecords(filteredRecords, rankingsTopN(filters));
+  }, [filteredRecords, filters]);
+
+  function handleFiltersChange(next: AnalysisFilters) {
+    if (next.preset === 'wrapped' && filters.preset !== 'wrapped') {
+      setActiveTab('wrapped');
+    } else if (next.preset !== 'wrapped' && filters.preset === 'wrapped') {
+      setActiveTab((tab) => (tab === 'wrapped' ? 'summary' : tab));
+    }
+    setFilters(next);
+  }
 
   useEffect(() => {
     if (view === 'landing' || view === 'request-data') {
@@ -106,7 +115,7 @@ export default function App() {
     setAllRecords(sorted);
     setBounds({ yearMin, yearMax });
     setFilters(createDefaultFilters(yearMin, yearMax));
-    setActiveTab('overview');
+    setActiveTab('summary');
     setIsSampleData(sample);
     setView('dashboard');
     setNavOpen(false);
@@ -151,7 +160,7 @@ export default function App() {
     setAllRecords([]);
     setError(null);
     setIsSampleData(false);
-    setActiveTab('overview');
+    setActiveTab('summary');
     setView('landing');
   }
 
@@ -238,10 +247,6 @@ export default function App() {
         </div>
       </header>
 
-      {view === 'dashboard' ? (
-        <PrivacyBanner compact onOpenDataHandling={() => navigate('data-handling')} />
-      ) : null}
-
       <main className="main-content">
         {view === 'landing' ? (
           <LandingPage
@@ -288,48 +293,46 @@ export default function App() {
               bounds={bounds}
               filteredPlays={filteredRecords.length}
               totalPlays={allRecords.length}
-              onChange={setFilters}
+              onChange={handleFiltersChange}
             />
 
             {analysis ? (
               <>
-                <div className="toolbar">
-                  <div className="toolbar__summary">
-                    {isSampleData ? <span className="toolbar__badge">Sample data</span> : null}
-                    <strong>{analysis.overview.totalPlays.toLocaleString()} plays</strong>
-                    <span>{filterContext.spanLabel}</span>
+                <div className="dashboard-chrome">
+                  <div className="dashboard-chrome__tabs">
+                    <nav className="tab-nav" aria-label="Dashboard sections">
+                      {dashboardTabs.map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          className={`tab-nav__button${
+                            activeTab === tab.id ? ' tab-nav__button--active' : ''
+                          }`}
+                          onClick={() => setActiveTab(tab.id)}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </nav>
+                    <p className="tab-nav__description">
+                      {dashboardTabs.find((tab) => tab.id === activeTab)?.description}
+                    </p>
                   </div>
-                  <button type="button" className="button button--ghost" onClick={resetAnalysis}>
-                    {isSampleData ? 'Exit sample' : 'Load different files'}
-                  </button>
+                  <div className="dashboard-chrome__actions">
+                    {isSampleData ? <span className="toolbar__badge">Sample data</span> : null}
+                    <button type="button" className="button button--ghost" onClick={resetAnalysis}>
+                      {isSampleData ? 'Exit sample' : 'Load different files'}
+                    </button>
+                  </div>
                 </div>
 
-                <nav className="tab-nav" aria-label="Dashboard sections">
-                  {DASHBOARD_TABS.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      className={`tab-nav__button${
-                        activeTab === tab.id ? ' tab-nav__button--active' : ''
-                      }`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </nav>
-
-                {activeTab === 'assumptions' ? (
-                  <AssumptionsPanel variant="panel" />
-                ) : (
-                  <Dashboard
-                    analysis={analysis}
-                    activeTab={activeTab}
-                    filterContext={filterContext}
-                    filters={filters}
-                    theme={theme}
-                  />
-                )}
+                <Dashboard
+                  analysis={analysis}
+                  activeTab={activeTab}
+                  filterContext={filterContext}
+                  filters={filters}
+                  theme={theme}
+                />
               </>
             ) : (
               <p className="error-banner">

@@ -97,7 +97,7 @@ export function FileUpload({
         ) : null}
         <p className="upload-disclaimer">
           {UPLOAD_DISCLAIMER}
-          <InfoTooltip text="Your JSON is parsed in-memory in this tab only. Close the tab to clear it." />
+          <InfoTooltip text="Your files stay in this browser tab only. Close the tab and your data is gone." />
         </p>
         <input
           ref={inputRef}

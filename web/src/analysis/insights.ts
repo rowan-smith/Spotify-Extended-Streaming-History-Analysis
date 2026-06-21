@@ -1,5 +1,45 @@
 import type { InsightFact, SongStats, StreamRecord } from '../types';
+import { formatLocalDate } from '../utils/formatting';
 import { songKey } from './processData';
+
+const WEEKDAY_PLURALS = [
+  'Sundays',
+  'Mondays',
+  'Tuesdays',
+  'Wednesdays',
+  'Thursdays',
+  'Fridays',
+  'Saturdays',
+];
+
+export const SUMMARY_INSIGHT_PRIORITY = [
+  'Most repeated track',
+  'Busiest month in range',
+  'Favorite weekday',
+  'Longest listening streak',
+  'Biggest binge day',
+  'Seasonal favorite',
+] as const;
+
+export function getSummaryInsights(insights: InsightFact[]): InsightFact[] {
+  const picked: InsightFact[] = [];
+
+  for (const title of SUMMARY_INSIGHT_PRIORITY) {
+    const fact = insights.find((item) => item.title === title);
+    if (fact) {
+      picked.push(fact);
+    }
+    if (picked.length >= 4) {
+      break;
+    }
+  }
+
+  return picked;
+}
+
+function formatInsightDate(isoDate: string): string {
+  return formatLocalDate(new Date(`${isoDate}T12:00:00`));
+}
 
 const MONTH_NAMES = [
   'January',
@@ -57,9 +97,9 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
   }
   const peakMonthIndex = monthCounts.indexOf(Math.max(...monthCounts));
   facts.push({
-    title: 'Busiest month (all years)',
+    title: 'Busiest month in range',
     value: MONTH_NAMES[peakMonthIndex],
-    detail: `${monthCounts[peakMonthIndex].toLocaleString()} plays across every ${MONTH_NAMES[peakMonthIndex]} in your history.`,
+    detail: `${monthCounts[peakMonthIndex].toLocaleString()} plays during ${MONTH_NAMES[peakMonthIndex]}.`,
   });
 
   const weekdayCounts = Array.from({ length: 7 }, () => 0);
@@ -71,7 +111,7 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
   facts.push({
     title: 'Favorite weekday',
     value: weekdayNames[peakWeekday],
-    detail: `${weekdayCounts[peakWeekday].toLocaleString()} plays land on this day of the week.`,
+    detail: `${weekdayCounts[peakWeekday].toLocaleString()} plays on ${WEEKDAY_PLURALS[peakWeekday]}.`,
   });
 
   const streaks = computeLongestStreak(records);
@@ -79,7 +119,7 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
     facts.push({
       title: 'Longest listening streak',
       value: `${streaks.days} days`,
-      detail: `From ${streaks.start} through ${streaks.end} with at least one play each day.`,
+      detail: `${formatInsightDate(streaks.start)} – ${formatInsightDate(streaks.end)} · listened every day.`,
     });
   }
 
@@ -88,7 +128,7 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
     facts.push({
       title: 'Biggest binge day',
       value: `${binge.plays.toLocaleString()} plays`,
-      detail: `${binge.day}: top track ${binge.topTrack}`,
+      detail: `${formatInsightDate(binge.day)} · top track ${binge.topTrack}`,
     });
   }
 

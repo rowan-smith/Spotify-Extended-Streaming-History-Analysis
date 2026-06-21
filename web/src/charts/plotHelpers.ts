@@ -33,19 +33,35 @@ const SERIES_COLORS = [
   '#eb984e',
 ];
 
+export function rankedBarChartLayout(
+  itemCount: number,
+  compactViewport: boolean,
+): { height: number; inlineLabels: boolean } {
+  const inlineLabels = compactViewport && itemCount <= 15;
+  const pxPerBar = inlineLabels ? 24 : 28;
+  const padding = inlineLabels ? 72 : 96;
+  const minHeight = compactViewport ? 460 : 420;
+  const maxHeight = 3200;
+
+  return {
+    inlineLabels,
+    height: Math.min(maxHeight, Math.max(minHeight, itemCount * pxPerBar + padding)),
+  };
+}
+
 export function horizontalBarChart(
   labels: string[],
   values: number[],
   hoverText?: string[],
   xTitle = 'Count',
-  options?: { compact?: boolean; accent?: string },
+  options?: { inlineLabels?: boolean; accent?: string },
 ): Partial<PlotData> {
-  const compact = options?.compact ?? false;
+  const inlineLabels = options?.inlineLabels ?? false;
   const reversedLabels = [...labels].reverse();
   const reversedValues = [...values].reverse();
   const reversedHover = hoverText ? [...hoverText].reverse() : undefined;
 
-  if (compact) {
+  if (inlineLabels) {
     return {
       type: 'bar',
       orientation: 'h',

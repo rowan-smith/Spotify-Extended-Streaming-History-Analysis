@@ -16,6 +16,7 @@ export interface RawRecord {
   reason_end?: string | null;
   reason_end_reason?: string | null;
   skipped?: boolean | string | null;
+  incognito_mode?: boolean | string | null;
   episode_show_name?: string | null;
 }
 
@@ -28,6 +29,7 @@ export interface StreamRecord {
   albumName: string;
   msPlayed: number;
   skipped: boolean;
+  incognito: boolean;
   reasonEnd: string;
   contentKind: ContentKind;
 }
@@ -96,10 +98,14 @@ export interface AnalysisFilters {
   yearTo: number | null;
   monthFrom: number | null;
   monthTo: number | null;
+  dayFrom: number | null;
+  dayTo: number | null;
   search: string;
   topN: number;
   hideSkipped: boolean;
   minMsPlayed: number;
+  minMsPlayedExclusive: boolean;
+  excludeIncognito: boolean;
   includeMusic: boolean;
   includePodcasts: boolean;
   includeAudiobooks: boolean;
@@ -148,14 +154,7 @@ export interface AnalysisResult {
 
 export type SortMetric = 'plays' | 'time' | 'combined';
 
-export type TabId =
-  | 'overview'
-  | 'songs'
-  | 'artists'
-  | 'timeline'
-  | 'patterns'
-  | 'explore'
-  | 'assumptions';
+export type TabId = 'summary' | 'wrapped' | 'songs' | 'artists' | 'timeline' | 'habits' | 'browse';
 
 export type AppView =
   | 'landing'

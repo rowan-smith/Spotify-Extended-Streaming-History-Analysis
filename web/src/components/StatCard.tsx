@@ -6,11 +6,12 @@ interface StatCardProps {
   value: string;
   hint?: string;
   info?: string;
+  variant?: 'default' | 'hero';
 }
 
-export function StatCard({ label, value, hint, info }: StatCardProps) {
+export function StatCard({ label, value, hint, info, variant = 'default' }: StatCardProps) {
   return (
-    <article className="stat-card">
+    <article className={`stat-card${variant === 'hero' ? ' stat-card--hero' : ''}`}>
       <p className="stat-label">
         {label}
         {info ? <InfoTooltip text={info} label={label} /> : null}

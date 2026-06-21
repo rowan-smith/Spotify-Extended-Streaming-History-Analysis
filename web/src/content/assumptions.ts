@@ -16,12 +16,16 @@ export const ASSUMPTIONS: Assumption[] = [
     body: 'By default only music rows are included. Podcast and audiobook rows can be enabled in advanced filters.',
   },
   {
+    title: 'Wrapped preset',
+    body: 'The Wrapped preset follows Spotify’s published rules where your export supports them: music only, Jan 1 through mid-November, more than 30 seconds per listen, skips and private sessions excluded, and rankings by play count. Spotify also weights featured artists differently and filters some non-music tracks — those cannot be replicated exactly from the export alone.',
+  },
+  {
     title: 'Minimum play duration (filters)',
-    body: 'The default preset ignores plays under 30 seconds. Wrapped-style presets use similar thresholds. Custom filters can change this.',
+    body: 'The default preset ignores plays under 30 seconds. The Wrapped preset requires more than 30 seconds, matching Spotify’s definition.',
   },
   {
     title: 'Timestamps and local time',
-    body: 'Spotify exports ts in UTC. Calendar day boundaries for habits use your browser local timezone. Hour-of-day charts also use local time.',
+    body: 'Spotify exports ts in UTC. Date filters, calendar-day stats, and hour-of-day charts use your browser’s local timezone so they match what you see on screen.',
   },
   {
     title: 'Duplicate exports are deduplicated',
@@ -52,8 +56,12 @@ export const ASSUMPTIONS: Assumption[] = [
     body: "reason_end == 'trackdone' indicates the track finished playing, not necessarily that you listened intentionally start to finish.",
   },
   {
+    title: 'Private sessions',
+    body: 'When incognito_mode is true in your export, the Wrapped preset excludes that play. Spotify Wrapped does not use private sessions for taste-based rankings.',
+  },
+  {
     title: 'Skipped track',
-    body: 'skipped == true in the export.',
+    body: 'skipped == true in the export. The Wrapped preset excludes these from rankings.',
   },
   {
     title: 'Listening session',
@@ -61,7 +69,7 @@ export const ASSUMPTIONS: Assumption[] = [
   },
   {
     title: 'Month/day seasonality charts',
-    body: 'All Januaries, all 1sts of the month, etc. are pooled across every year in your history. They show seasonal patterns, not a running cumulative total over time.',
+    body: 'All Januaries, all 1sts of the month, etc. are pooled across your filtered date range. They show seasonal patterns within that range, not a running cumulative total over time.',
   },
 ];
 

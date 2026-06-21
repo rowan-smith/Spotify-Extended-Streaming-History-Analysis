@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import type { ThemePreference } from '../hooks/useTheme';
 
 interface ThemeToggleProps {
@@ -61,7 +62,7 @@ function MoonIcon() {
   );
 }
 
-const OPTIONS: { value: ThemePreference; label: string; Icon: () => JSX.Element }[] = [
+const OPTIONS: { value: ThemePreference; label: string; Icon: () => ReactElement }[] = [
   { value: 'system', label: 'Use system theme', Icon: SystemIcon },
   { value: 'light', label: 'Light theme', Icon: SunIcon },
   { value: 'dark', label: 'Dark theme', Icon: MoonIcon },

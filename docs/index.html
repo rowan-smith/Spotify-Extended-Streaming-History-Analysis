@@ -8,6 +8,7 @@
       content="Explore your Spotify Extended Streaming History locally in your browser. Your data never leaves your device."
     />
     <title>Spotify Streaming History Explorer</title>
+    <link id="app-favicon" rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <script>
       (function () {
         var stored = localStorage.getItem('spotify-history-theme');
@@ -18,13 +19,19 @@
               ? 'light'
               : 'dark';
         document.documentElement.dataset.theme = theme;
+        var favicon = document.getElementById('app-favicon');
+        if (favicon) {
+          favicon.href = theme === 'dark' ? './favicon-dark.svg' : './favicon.svg';
+        }
       })();
     </script>
     <!-- Cloudflare Web Analytics: replace YOUR_TOKEN with your beacon token from the Cloudflare dashboard -->
     <!-- <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "YOUR_TOKEN"}'></script> -->
-    <script type="module" crossorigin src="./assets/index-mhYdUE1t.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/react-vendor-C2NgxwiJ.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-DStfb6Rz.css">
+    <script type="module" crossorigin src="./assets/index-DCzXTffQ.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-Bh1tDfsg.js">
+    <link rel="modulepreload" crossorigin href="./assets/plotly-C0L1mv0a.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-vendor-BWPXGkPy.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-DlPHlxEP.css">
   </head>
   <body>
     <div id="root"></div>

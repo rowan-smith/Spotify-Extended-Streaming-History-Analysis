@@ -50,7 +50,7 @@ export async function parseJsonFiles(files: File[]): Promise<RawRecord[]> {
   return records;
 }
 
-function isTruthySkipped(value: RawRecord['skipped']): boolean {
+function isTruthyFlag(value: boolean | string | null | undefined): boolean {
   return value === true || value === 'True' || value === 'true';
 }
 
@@ -105,7 +105,8 @@ export function cleanRecords(raw: RawRecord[]): StreamRecord[] {
       artistName,
       albumName: row.master_metadata_album_album_name ?? row.albumName ?? 'Unknown Album',
       msPlayed: row.ms_played ?? row.msPlayed ?? 0,
-      skipped: isTruthySkipped(row.skipped),
+      skipped: isTruthyFlag(row.skipped),
+      incognito: isTruthyFlag(row.incognito_mode),
       reasonEnd: row.reason_end ?? '',
       contentKind,
     });

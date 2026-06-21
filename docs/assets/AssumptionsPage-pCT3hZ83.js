@@ -1,1 +1,0 @@
-import{j as t}from"./react-vendor-C2NgxwiJ.js";import{A as n}from"./index-mhYdUE1t.js";function i({onBack:s,backLabel:o="Back to home"}){return t.jsxs("div",{className:"content-page",children:[t.jsx("div",{className:"page-toolbar",children:t.jsx("button",{type:"button",className:"button button--ghost",onClick:s,children:o})}),t.jsx(n,{})]})}export{i as AssumptionsPage};

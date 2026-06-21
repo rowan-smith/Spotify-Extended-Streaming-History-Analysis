@@ -9,66 +9,65 @@ export const SPOTIFY_PRIVACY_URL = 'https://www.spotify.com/account/privacy/';
 export const SPOTIFY_PRIVACY_LABEL = 'spotify.com/account/privacy';
 
 export const FILTER_PRESET_INFO = {
-  default: 'Sensible defaults: music only, listens of at least 30 seconds, skipped plays excluded.',
+  default:
+    'A good starting point: music only, at least 30 seconds per track, and skips left out.',
   wrapped:
-    'Approximates Spotify Wrapped: music only, at least 30 seconds listened, skips excluded, completed listens preferred.',
-  custom: 'You control every filter. Changes here switch the preset to Custom.',
+    'Matches Spotify Wrapped as closely as your export allows: music only, Jan 1–Nov 15 of the latest Wrapped year, more than 30 seconds per listen, skips and private sessions excluded, top 100 by play count.',
+  custom: 'You set the filters yourself. Changing anything here switches to Custom.',
 } as const;
+
+export const WRAPPED_LIMITATIONS =
+  'Approximation only. Spotify may also weight featured artists, filter ambient tracks, and honor Taste Profile settings — none of which appear in your export.';
 
 export const FILTER_OPTION_INFO = {
   hideSkipped:
-    'Removes rows where Spotify marked the play as skipped. Useful when you only want intentional listens.',
+    'Leave out tracks you skipped. Useful if you only want songs you actually listened to.',
   minDuration:
-    'Ignores very short plays below this threshold. Spotify Wrapped roughly uses 30 seconds.',
-  includeMusic:
-    'Standard track rows from your audio streaming history export.',
-  includePodcasts:
-    'Includes podcast episode rows from your export (when present).',
-  includeAudiobooks:
-    'Includes audiobook rows from your export (when present).',
+    'Ignore very short plays below this. Spotify Wrapped counts a listen only after more than 30 seconds.',
+  excludeIncognito:
+    'Leave out private sessions. Spotify Wrapped does not use these for top songs and artists.',
+  includeMusic: 'Count songs from your listening history.',
+  includePodcasts: 'Include podcast episodes if your export has them.',
+  includeAudiobooks: 'Include audiobooks if your export has them.',
   combineRanking:
-    'Ranks items using both play count and total playtime together instead of picking one metric.',
+    'Ranks items using both how often you played something and how long you listened.',
   monthFrom:
-    'Start of your date window. Combined with the year filters to narrow results (e.g. Oct–Dec 2025).',
-  monthTo:
-    'End of your date window. Combined with the year filters to narrow results.',
+    'Earliest month to include. Works with the year filters — for example, Oct–Dec 2025.',
+  monthTo: 'Latest month to include. Works with the year filters.',
 } as const;
 
 export const METRIC_INFO = {
   totalPlays:
-    'Count of streaming events after your filters. Each JSON row is one play, regardless of duration.',
+    'How many times you pressed play, after your filters are applied. Each play counts once.',
   totalListening:
-    'Sum of ms_played for filtered rows: total time Spotify recorded you listening.',
-  uniqueSongs: 'Distinct (track, artist) pairs in the filtered data.',
-  uniqueArtists: 'Distinct artist names in the filtered data.',
-  historySpan: 'Earliest to latest play in the filtered range.',
-  peakHour:
-    'Hour of day with the most plays, shown in your browser’s local timezone.',
-  completedListens:
-    "Plays where reason_end is 'trackdone': the track reached the end according to Spotify.",
-  skippedPlays: 'Plays where skipped is true in the export.',
+    'Total time Spotify recorded you listening, added up across all your plays.',
+  uniqueSongs:
+    'Different tracks in your results. The same song by the same artist counts once.',
+  uniqueArtists: 'Different artists in your results.',
+  historySpan: 'From your earliest to your latest play in this date range.',
+  peakHour: 'The hour of the day you listen most, in your local time zone.',
+  completedListens: 'Tracks you listened to all the way through, according to Spotify.',
+  skippedPlays: 'Tracks you skipped before they finished.',
   avgCompletedPerDay:
-    'Average completed listens per calendar day that has at least one play in the filtered range.',
-  avgSkippedPerDay:
-    'Average skipped plays per calendar day that has at least one play in the filtered range.',
-  avgPlaysPerDay:
-    'Total filtered plays divided by the number of distinct calendar days with activity.',
+    'On days you listened, how many tracks you finished on average.',
+  avgSkippedPerDay: 'On days you listened, how many tracks you skipped on average.',
+  avgPlaysPerDay: 'Your average number of plays on days you actually listened.',
   skipToCompleteRatio:
-    'Skipped plays divided by completed listens. Higher values mean more skips relative to full listens. A ratio of 0.5 means one skip for every two completed listens.',
+    'Skips compared to finished tracks. Higher means you skip more often. 0.5 is about one skip for every two finished tracks.',
   avgSessionLength:
-    'Average listening session length. A new session starts after 30 minutes with no plays.',
-  earliestListen: 'First play in the filtered dataset.',
-  latestListen: 'Most recent play in the filtered dataset.',
+    'How long a typical listening stretch lasts. A new session starts after 30 minutes with nothing playing.',
+  earliestListen: 'The first track in your filtered date range.',
+  latestListen: 'The most recent track in your filtered date range.',
   paceVsLastYear:
-    'Compares your current calendar year pace to the same point last year. Shows daily average needed to match last year’s total.',
+    'How this year compares to the same point last year. Shows the daily pace you would need to match last year’s total.',
   beatRecord:
-    'How many plays per day you need for the rest of this year to beat your best yearly play count.',
+    'The daily play count you would need for the rest of this year to beat your best year ever.',
 } as const;
 
 export const PLAYS_VS_TIME_INFO = {
   plays:
-    'Play count ranks by how often you started a track. Skips and short listens count the same as long sessions.',
-  time: 'Playtime ranks by total ms_played. Long listens and repeat sessions boost a track’s score.',
+    'Ranked by how many times you played something. A quick skip counts the same as a long listen.',
+  time: 'Ranked by total listening time. Long sessions and repeats help a track rank higher.',
 } as const;
 
 export const DATA_HANDLING_SECTIONS = [

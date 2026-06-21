@@ -1,28 +1,58 @@
 import type { AnalysisFilters, FilterBounds, FilterContext, StreamRecord } from '../types';
 
 export const DEFAULT_TOP_N = 10;
-export const TOP_N_OPTIONS = [10, 20, 50];
+export const WRAPPED_TOP_N = 100;
+export const TOP_N_OPTIONS = [10, 20, 50, WRAPPED_TOP_N];
+
+/** Spotify Wrapped counts listening through mid-November (typically the 15th). */
+export const WRAPPED_CUTOFF_MONTH = 11;
+export const WRAPPED_CUTOFF_DAY = 15;
+export const WRAPPED_MIN_MS = 30_000;
+
 export const MIN_DURATION_OPTIONS = [
   { label: 'None', value: 0 },
-  { label: '30 seconds', value: 30_000 },
+  { label: '30 seconds', value: WRAPPED_MIN_MS },
   { label: '1 minute', value: 60_000 },
-];
+] as const;
 
 const PRESET_DEFAULT = {
   hideSkipped: true,
-  minMsPlayed: 30_000,
+  minMsPlayed: WRAPPED_MIN_MS,
+  minMsPlayedExclusive: false,
+  excludeIncognito: false,
   includeMusic: true,
   includePodcasts: false,
   includeAudiobooks: false,
+  monthFrom: null,
+  monthTo: null,
+  dayFrom: null,
+  dayTo: null,
 } as const;
 
 const PRESET_WRAPPED = {
   hideSkipped: true,
-  minMsPlayed: 30_000,
+  minMsPlayed: WRAPPED_MIN_MS,
+  minMsPlayedExclusive: true,
+  excludeIncognito: true,
   includeMusic: true,
   includePodcasts: false,
   includeAudiobooks: false,
+  combineRanking: false,
+  topN: WRAPPED_TOP_N,
+  monthFrom: 1,
+  monthTo: WRAPPED_CUTOFF_MONTH,
+  dayFrom: 1,
+  dayTo: WRAPPED_CUTOFF_DAY,
 } as const;
+
+/** Latest calendar year Spotify Wrapped would have published for. */
+export function getWrappedYear(bounds: FilterBounds, now = new Date()): number {
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+  const wrappedYear = currentMonth >= 12 ? currentYear : currentYear - 1;
+
+  return Math.max(bounds.yearMin, Math.min(bounds.yearMax, wrappedYear));
+}
 
 export function createDefaultFilters(yearMin: number, yearMax: number): AnalysisFilters {
   return {
@@ -30,8 +60,6 @@ export function createDefaultFilters(yearMin: number, yearMax: number): Analysis
     mode: 'basic',
     yearFrom: yearMin,
     yearTo: yearMax,
-    monthFrom: null,
-    monthTo: null,
     search: '',
     topN: DEFAULT_TOP_N,
     ...PRESET_DEFAULT,
@@ -48,22 +76,84 @@ export function applyPreset(
     return { ...current, preset: 'custom' };
   }
 
-  const presetValues = preset === 'wrapped' ? PRESET_WRAPPED : PRESET_DEFAULT;
+  if (preset === 'wrapped') {
+    const wrappedYear = getWrappedYear(bounds);
+    return {
+      ...current,
+      preset: 'wrapped',
+      ...PRESET_WRAPPED,
+      yearFrom: wrappedYear,
+      yearTo: wrappedYear,
+    };
+  }
+
   return {
     ...current,
-    preset,
-    ...presetValues,
+    preset: 'default',
+    ...PRESET_DEFAULT,
+    topN: current.topN === WRAPPED_TOP_N ? DEFAULT_TOP_N : current.topN,
     yearFrom: current.yearFrom ?? bounds.yearMin,
     yearTo: current.yearTo ?? bounds.yearMax,
   };
 }
 
+/** Update year range from the quick picker without dropping Default or Wrapped preset rules. */
+export function applyQuickYearRange(
+  filters: AnalysisFilters,
+  yearFrom: number,
+  yearTo: number,
+): AnalysisFilters {
+  if (filters.preset === 'wrapped') {
+    return {
+      ...filters,
+      preset: 'wrapped',
+      ...PRESET_WRAPPED,
+      yearFrom,
+      yearTo,
+    };
+  }
+
+  if (filters.preset === 'default') {
+    return {
+      ...filters,
+      preset: 'default',
+      ...PRESET_DEFAULT,
+      topN: filters.topN === WRAPPED_TOP_N ? DEFAULT_TOP_N : filters.topN,
+      yearFrom,
+      yearTo,
+    };
+  }
+
+  return {
+    ...filters,
+    preset: 'custom',
+    yearFrom,
+    yearTo,
+  };
+}
+
+export function rankingsTopN(filters: AnalysisFilters): number {
+  return filters.preset === 'wrapped' ? DEFAULT_TOP_N : filters.topN;
+}
+
 function recordMonthIndex(record: StreamRecord): number {
-  return record.ts.getUTCFullYear() * 12 + record.ts.getUTCMonth();
+  return record.ts.getFullYear() * 12 + record.ts.getMonth();
 }
 
 function filterMonthIndex(year: number, month: number): number {
   return year * 12 + (month - 1);
+}
+
+function recordDayIndex(record: StreamRecord): number {
+  return (
+    record.ts.getFullYear() * 372 +
+    record.ts.getMonth() * 31 +
+    record.ts.getDate()
+  );
+}
+
+function filterDayIndex(year: number, month: number, day: number): number {
+  return year * 372 + (month - 1) * 31 + day;
 }
 
 export function getFilterContext(filters: AnalysisFilters): FilterContext {
@@ -74,7 +164,13 @@ export function getFilterContext(filters: AnalysisFilters): FilterContext {
 
   let spanLabel = 'selected range';
   if (singleYear && filters.monthFrom && filters.monthTo) {
-    spanLabel = `${yearFrom} (${filters.monthFrom}–${filters.monthTo})`;
+    const fromLabel = filters.dayFrom
+      ? `${filters.monthFrom}/${filters.dayFrom}`
+      : String(filters.monthFrom);
+    const toLabel = filters.dayTo
+      ? `${filters.monthTo}/${filters.dayTo}`
+      : String(filters.monthTo);
+    spanLabel = `${yearFrom} (${fromLabel}–${toLabel})`;
   } else if (singleYear) {
     spanLabel = String(yearFrom);
   } else if (yearFrom !== null && yearTo !== null) {
@@ -111,9 +207,19 @@ export function filterRecords(
         ? filterMonthIndex(filters.yearTo, 12)
         : null;
 
+  const dayFromIndex =
+    filters.dayFrom !== null && filters.monthFrom !== null && filters.yearFrom !== null
+      ? filterDayIndex(filters.yearFrom, filters.monthFrom, filters.dayFrom)
+      : null;
+  const dayToIndex =
+    filters.dayTo !== null && filters.monthTo !== null && filters.yearTo !== null
+      ? filterDayIndex(filters.yearTo, filters.monthTo, filters.dayTo)
+      : null;
+
   return records.filter((record) => {
-    const year = record.ts.getUTCFullYear();
+    const year = record.ts.getFullYear();
     const monthIndex = recordMonthIndex(record);
+    const dayIndex = recordDayIndex(record);
 
     if (filters.yearFrom !== null && year < yearFrom) {
       return false;
@@ -127,11 +233,25 @@ export function filterRecords(
     if (monthToIndex !== null && monthIndex > monthToIndex) {
       return false;
     }
+    if (dayFromIndex !== null && dayIndex < dayFromIndex) {
+      return false;
+    }
+    if (dayToIndex !== null && dayIndex > dayToIndex) {
+      return false;
+    }
     if (filters.hideSkipped && record.skipped) {
       return false;
     }
-    if (filters.minMsPlayed > 0 && record.msPlayed < filters.minMsPlayed) {
+    if (filters.excludeIncognito && record.incognito) {
       return false;
+    }
+    if (filters.minMsPlayed > 0) {
+      const passesMinDuration = filters.minMsPlayedExclusive
+        ? record.msPlayed > filters.minMsPlayed
+        : record.msPlayed >= filters.minMsPlayed;
+      if (!passesMinDuration) {
+        return false;
+      }
     }
 
     const kindAllowed =
@@ -173,6 +293,9 @@ export function countActiveFilters(
   if (filters.monthFrom !== null || filters.monthTo !== null) {
     count += 1;
   }
+  if (filters.dayFrom !== null || filters.dayTo !== null) {
+    count += 1;
+  }
   if (filters.search.trim()) {
     count += 1;
   }
@@ -185,6 +308,12 @@ export function countActiveFilters(
   if (filters.minMsPlayed !== PRESET_DEFAULT.minMsPlayed) {
     count += 1;
   }
+  if (filters.minMsPlayedExclusive !== PRESET_DEFAULT.minMsPlayedExclusive) {
+    count += 1;
+  }
+  if (filters.excludeIncognito !== PRESET_DEFAULT.excludeIncognito) {
+    count += 1;
+  }
   if (!filters.includeMusic || filters.includePodcasts || filters.includeAudiobooks) {
     count += 1;
   }
@@ -193,6 +322,15 @@ export function countActiveFilters(
   }
 
   return count;
+}
+
+export function shouldShowPaceMetrics(filters: AnalysisFilters): boolean {
+  if (filters.preset === 'wrapped') {
+    return false;
+  }
+
+  const currentYear = new Date().getFullYear();
+  return filters.yearFrom === currentYear && filters.yearTo === currentYear;
 }
 
 export function markCustomPreset(filters: AnalysisFilters): AnalysisFilters {

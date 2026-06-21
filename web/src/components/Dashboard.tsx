@@ -5,8 +5,11 @@ import {
   horizontalBarChart,
   lineChart,
   multiYearLineSeries,
+  rankedBarChartLayout,
   verticalBarChart,
 } from '../charts/plotHelpers';
+import { shouldShowPaceMetrics } from '../analysis/filters';
+import { getSummaryInsights } from '../analysis/insights';
 import { formatDuration, formatHours } from '../analysis/processData';
 import { METRIC_INFO, PLAYS_VS_TIME_INFO } from '../content/siteContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -24,6 +27,7 @@ import type {
 import { ChartCard, MetricTabs, StatCard } from './StatCard';
 import { DataTable } from './DataTable';
 import { InfoTooltip } from './InfoTooltip';
+import { WrappedTab } from './WrappedTab';
 
 interface DashboardProps {
   analysis: AnalysisResult;
@@ -53,21 +57,33 @@ function RankedBarChart({
   compact: boolean;
 }) {
   const plotTheme = getPlotTheme(theme === 'dark');
+  const chartLayout = rankedBarChartLayout(labels.length, compact);
 
   return (
-    <ChartCard title={title} subtitle={subtitle}>
+    <ChartCard
+      title={title}
+      subtitle={
+        subtitle ??
+        (labels.length > 25 ? 'Scroll the page to see every ranked item.' : undefined)
+      }
+    >
       <Plot
         data={[
           horizontalBarChart(labels, values, hover, xTitle, {
-            compact,
+            inlineLabels: chartLayout.inlineLabels,
             accent: plotTheme.accent,
           }),
         ]}
         layout={{
           ...plotTheme.layout,
-          height: compact ? 460 : 420,
+          height: chartLayout.height,
+          bargap: labels.length > 30 ? 0.08 : 0.15,
           xaxis: { title: { text: xTitle }, gridcolor: plotTheme.grid },
-          yaxis: { automargin: !compact, showticklabels: !compact },
+          yaxis: {
+            automargin: !chartLayout.inlineLabels,
+            showticklabels: !chartLayout.inlineLabels,
+            tickfont: labels.length > 40 ? { size: 10 } : undefined,
+          },
         }}
         config={{ displayModeBar: false, responsive: true }}
         style={{ width: '100%' }}
@@ -114,6 +130,7 @@ function YearDrilldownChart({
     const plays = 'numPlays' in row ? row.numPlays : row.listenCount;
     return `${plays.toLocaleString()} plays`;
   });
+  const chartLayout = rankedBarChartLayout(labels.length, compact);
 
   return (
     <ChartCard title={title} subtitle="Pick a year and metric to explore yearly rankings.">
@@ -138,18 +155,23 @@ function YearDrilldownChart({
       <Plot
         data={[
           horizontalBarChart(labels, values, hover, sortMetric === 'plays' ? 'Plays' : 'Hours', {
-            compact,
+            inlineLabels: chartLayout.inlineLabels,
             accent: plotTheme.accent,
           }),
         ]}
         layout={{
           ...plotTheme.layout,
-          height: compact ? 460 : 420,
+          height: chartLayout.height,
+          bargap: labels.length > 30 ? 0.08 : 0.15,
           xaxis: {
             title: { text: sortMetric === 'plays' ? 'Plays' : 'Hours' },
             gridcolor: plotTheme.grid,
           },
-          yaxis: { automargin: !compact, showticklabels: !compact },
+          yaxis: {
+            automargin: !chartLayout.inlineLabels,
+            showticklabels: !chartLayout.inlineLabels,
+            tickfont: labels.length > 40 ? { size: 10 } : undefined,
+          },
         }}
         config={{ displayModeBar: false, responsive: true }}
         style={{ width: '100%' }}
@@ -279,6 +301,265 @@ function ArtistsTab({
   );
 }
 
+function ActivitySection({
+  overview,
+  filters,
+}: {
+  overview: AnalysisResult['overview'];
+  filters: AnalysisFilters;
+}) {
+  const showSkipMetrics = !filters.hideSkipped;
+  const completionTotal = overview.totalCompleted + overview.totalSkipped;
+  const completionPct =
+    completionTotal > 0 ? Math.round((overview.totalCompleted / completionTotal) * 100) : 100;
+  const showCompletionBar = showSkipMetrics && overview.totalSkipped > 0;
+
+  return (
+    <section className="overview-section">
+      <h3 className="overview-section__title">Play activity</h3>
+      <div className="overview-activity">
+        <div
+          className={`stats-grid stats-grid--activity${showSkipMetrics ? '' : ' stats-grid--activity-no-skips'}`}
+        >
+          <StatCard
+            label="Completed listens"
+            value={overview.totalCompleted.toLocaleString()}
+            info={METRIC_INFO.completedListens}
+          />
+          {showSkipMetrics ? (
+            <StatCard
+              label="Skipped plays"
+              value={overview.totalSkipped.toLocaleString()}
+              info={METRIC_INFO.skippedPlays}
+            />
+          ) : null}
+          <StatCard
+            label="Avg plays / day"
+            value={overview.avgPlaysPerDay.toFixed(1)}
+            info={METRIC_INFO.avgPlaysPerDay}
+          />
+          <StatCard
+            label="Avg completed / day"
+            value={overview.avgCompletedPerDay.toFixed(1)}
+            info={METRIC_INFO.avgCompletedPerDay}
+          />
+          {showSkipMetrics ? (
+            <StatCard
+              label="Avg skipped / day"
+              value={overview.avgSkippedPerDay.toFixed(1)}
+              info={METRIC_INFO.avgSkippedPerDay}
+            />
+          ) : null}
+        </div>
+        {showCompletionBar ? (
+          <div className="completion-bar" aria-label={`${completionPct}% completed listens`}>
+            <div className="completion-bar__labels">
+              <span>Completed vs skipped</span>
+              <span>{completionPct}% completed</span>
+            </div>
+            <div className="completion-bar__track">
+              <div className="completion-bar__fill" style={{ width: `${completionPct}%` }} />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function BookendsSection({ overview }: { overview: AnalysisResult['overview'] }) {
+  return (
+    <section className="overview-section">
+      <h3 className="overview-section__title">First & latest listens</h3>
+      <div className="overview-cards overview-cards--bookends">
+        <article className="bookend-card">
+          <p className="bookend-card__label">Earliest listen</p>
+          {overview.earliest ? (
+            <>
+              <p className="bookend-card__track">{overview.earliest.trackName}</p>
+              <p className="bookend-card__artist">{overview.earliest.artistName}</p>
+              <p className="bookend-card__meta">{formatLocalDateTime(overview.earliest.ts)}</p>
+            </>
+          ) : (
+            <p className="bookend-card__empty">No data in this range.</p>
+          )}
+        </article>
+
+        <article className="bookend-card">
+          <p className="bookend-card__label">Latest listen</p>
+          {overview.latest ? (
+            <>
+              <p className="bookend-card__track">{overview.latest.trackName}</p>
+              <p className="bookend-card__artist">{overview.latest.artistName}</p>
+              <p className="bookend-card__meta">{formatLocalDateTime(overview.latest.ts)}</p>
+            </>
+          ) : (
+            <p className="bookend-card__empty">No data in this range.</p>
+          )}
+        </article>
+
+        <article className="bookend-card bookend-card--habits">
+          <p className="bookend-card__label">Session habits</p>
+          <div className="bookend-metrics">
+            <div className="bookend-metric">
+              <p className="bookend-metric__label">
+                Skip ratio
+                <InfoTooltip text={METRIC_INFO.skipToCompleteRatio} label="Skip ratio" />
+              </p>
+              <p className="bookend-metric__value">{overview.skipToCompleteRatio.toFixed(2)}</p>
+            </div>
+            <div className="bookend-metric">
+              <p className="bookend-metric__label">
+                Avg session
+                <InfoTooltip text={METRIC_INFO.avgSessionLength} label="Average session length" />
+              </p>
+              <p className="bookend-metric__value">
+                {formatSessionLength(overview.avgSessionSeconds)}
+              </p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function PatternsSection({
+  analysis,
+  plotTheme,
+  showMultiYearCharts,
+}: {
+  analysis: AnalysisResult;
+  plotTheme: ReturnType<typeof getPlotTheme>;
+  showMultiYearCharts: boolean;
+}) {
+  return (
+    <>
+      <ChartCard
+        title="Plays by month (in range)"
+        subtitle="All Januaries, Februaries, etc. pooled across your filtered history."
+      >
+        <Plot
+          data={[
+            verticalBarChart(
+              analysis.playsByMonth.map((point) => point.label),
+              analysis.playsByMonth.map((point) => point.value),
+              analysis.playsByMonth.map((point) => point.topItem ?? ''),
+              'Plays',
+              plotTheme.accent,
+            ),
+          ]}
+          layout={{
+            ...plotTheme.layout,
+            height: 360,
+            xaxis: { title: { text: 'Month' }, gridcolor: plotTheme.grid },
+            yaxis: { title: { text: 'Plays' }, gridcolor: plotTheme.grid },
+          }}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%' }}
+          useResizeHandler
+        />
+      </ChartCard>
+
+      <ChartCard
+        title="Playtime by month (in range)"
+        subtitle="All Januaries, Februaries, etc. pooled across your filtered history."
+      >
+        <Plot
+          data={[
+            verticalBarChart(
+              analysis.hoursByMonth.map((point) => point.label),
+              analysis.hoursByMonth.map((point) => point.value),
+              analysis.hoursByMonth.map((point) => point.topItem ?? ''),
+              'Hours',
+              plotTheme.accent,
+            ),
+          ]}
+          layout={{
+            ...plotTheme.layout,
+            height: 360,
+            xaxis: { title: { text: 'Month' }, gridcolor: plotTheme.grid },
+            yaxis: { title: { text: 'Hours' }, gridcolor: plotTheme.grid },
+          }}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%' }}
+          useResizeHandler
+        />
+      </ChartCard>
+
+      <ChartCard
+        title="Plays by day of month (in range)"
+        subtitle="All 1sts, 2nds, etc. pooled across your filtered history."
+      >
+        <Plot
+          data={[
+            lineChart(
+              analysis.playsByDayOfMonth.map((point) => point.label),
+              analysis.playsByDayOfMonth.map((point) => point.value),
+              analysis.playsByDayOfMonth.map((point) => point.topItem ?? ''),
+              'Plays',
+              plotTheme.accent,
+            ),
+          ]}
+          layout={{
+            ...plotTheme.layout,
+            height: 360,
+            xaxis: { title: { text: 'Day of month' }, gridcolor: plotTheme.grid },
+            yaxis: { title: { text: 'Plays' }, gridcolor: plotTheme.grid },
+          }}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%' }}
+          useResizeHandler
+        />
+      </ChartCard>
+
+      <ChartCard title="Plays by hour of day (local time)">
+        <Plot
+          data={[
+            verticalBarChart(
+              analysis.playsByHour.map((point) => point.label),
+              analysis.playsByHour.map((point) => point.value),
+              analysis.playsByHour.map((point) => point.topItem ?? ''),
+              'Plays',
+              plotTheme.accent,
+            ),
+          ]}
+          layout={{
+            ...plotTheme.layout,
+            height: 360,
+            xaxis: { title: { text: 'Hour (local)' }, tickangle: -45, gridcolor: plotTheme.grid },
+            yaxis: { title: { text: 'Plays' }, gridcolor: plotTheme.grid },
+          }}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%' }}
+          useResizeHandler
+        />
+      </ChartCard>
+
+      {showMultiYearCharts && analysis.monthlyHistoryByYear.length > 1 ? (
+        <ChartCard
+          title="Listening history over the years"
+          subtitle="Monthly playtime by calendar year. Each line is one year in your filtered data."
+        >
+          <Plot
+            data={multiYearLineSeries(analysis.monthlyHistoryByYear, 'Hours')}
+            layout={{
+              ...plotTheme.layout,
+              height: 420,
+              xaxis: { title: { text: 'Month' }, gridcolor: plotTheme.grid },
+              yaxis: { title: { text: 'Hours' }, gridcolor: plotTheme.grid },
+              legend: { orientation: 'h', y: 1.15 },
+            }}
+            config={{ displayModeBar: false, responsive: true }}
+            style={{ width: '100%' }}
+            useResizeHandler
+          />
+        </ChartCard>
+      ) : null}
+    </>
+  );
+}
+
 export function Dashboard({
   analysis,
   activeTab,
@@ -292,137 +573,101 @@ export function Dashboard({
   const isCompact = useMediaQuery('(max-width: 640px)');
   const plotTheme = useMemo(() => getPlotTheme(theme === 'dark'), [theme]);
   const showMultiYearCharts = !filterContext.singleYear;
+  const summaryInsights = useMemo(() => getSummaryInsights(analysis.insights), [analysis.insights]);
 
-  if (activeTab === 'overview') {
+  if (activeTab === 'summary') {
     return (
-      <div className="dashboard-grid">
-        <div className="stats-grid">
-          <StatCard
-            label="Total plays"
-            value={overview.totalPlays.toLocaleString()}
-            info={METRIC_INFO.totalPlays}
-          />
-          <StatCard
-            label="Total listening"
-            value={formatHours(overview.totalHours)}
-            info={METRIC_INFO.totalListening}
-          />
-          <StatCard
-            label="Unique songs"
-            value={overview.uniqueSongs.toLocaleString()}
-            info={METRIC_INFO.uniqueSongs}
-          />
-          <StatCard
-            label="Unique artists"
-            value={overview.uniqueArtists.toLocaleString()}
-            info={METRIC_INFO.uniqueArtists}
-          />
-          <StatCard
-            label="History span"
-            value={`${overview.yearMin} – ${overview.yearMax}`}
-            info={METRIC_INFO.historySpan}
-          />
-          <StatCard
-            label="Peak hour (local)"
-            value={overview.peakHourLabel}
-            info={METRIC_INFO.peakHour}
-          />
-          <StatCard
-            label="Avg plays / day"
-            value={overview.avgPlaysPerDay.toFixed(1)}
-            info={METRIC_INFO.avgPlaysPerDay}
-          />
-          <StatCard
-            label="Completed listens"
-            value={overview.totalCompleted.toLocaleString()}
-            info={METRIC_INFO.completedListens}
-          />
-          <StatCard
-            label="Skipped plays"
-            value={overview.totalSkipped.toLocaleString()}
-            info={METRIC_INFO.skippedPlays}
-          />
-          <StatCard
-            label="Avg completed / day"
-            value={overview.avgCompletedPerDay.toFixed(1)}
-            info={METRIC_INFO.avgCompletedPerDay}
-          />
-          <StatCard
-            label="Avg skipped / day"
-            value={overview.avgSkippedPerDay.toFixed(1)}
-            info={METRIC_INFO.avgSkippedPerDay}
-          />
-          {overview.paceVsLastYear ? (
+      <div className="dashboard-grid overview">
+        <section className="overview-section">
+          <h3 className="overview-section__title">At a glance</h3>
+          <div className="stats-grid stats-grid--hero">
             <StatCard
-              label="Pace vs last year"
-              value={overview.paceVsLastYear}
-              info={METRIC_INFO.paceVsLastYear}
+              variant="hero"
+              label="Total plays"
+              value={overview.totalPlays.toLocaleString()}
+              info={METRIC_INFO.totalPlays}
             />
-          ) : null}
-          {overview.beatRecord ? (
             <StatCard
-              label="Beat your record"
-              value={overview.beatRecord}
-              info={METRIC_INFO.beatRecord}
+              variant="hero"
+              label="Total listening"
+              value={formatHours(overview.totalHours)}
+              info={METRIC_INFO.totalListening}
             />
-          ) : null}
-        </div>
+            <StatCard
+              variant="hero"
+              label="Unique songs"
+              value={overview.uniqueSongs.toLocaleString()}
+              info={METRIC_INFO.uniqueSongs}
+            />
+            <StatCard
+              variant="hero"
+              label="Unique artists"
+              value={overview.uniqueArtists.toLocaleString()}
+              info={METRIC_INFO.uniqueArtists}
+            />
+          </div>
+          <div className="stats-grid stats-grid--context">
+            <StatCard
+              label="History span"
+              value={`${overview.yearMin} – ${overview.yearMax}`}
+              info={METRIC_INFO.historySpan}
+            />
+            <StatCard
+              label="Peak hour (local)"
+              value={overview.peakHourLabel}
+              info={METRIC_INFO.peakHour}
+            />
+          </div>
+        </section>
 
-        <div className="overview-cards">
-          <ChartCard title="Earliest listen">
-            {overview.earliest ? (
-              <div className="track-spotlight">
-                <p className="track-spotlight__title">{overview.earliest.trackName}</p>
-                <p>{overview.earliest.artistName}</p>
-                <p className="muted">{formatLocalDateTime(overview.earliest.ts)}</p>
-              </div>
+        {shouldShowPaceMetrics(filters) && (overview.paceVsLastYear || overview.beatRecord) ? (
+          <div className="overview-callouts">
+            {overview.paceVsLastYear ? (
+              <aside className="overview-callout">
+                <p className="overview-callout__label">
+                  Pace vs last year
+                  <InfoTooltip text={METRIC_INFO.paceVsLastYear} />
+                </p>
+                <p className="overview-callout__value">{overview.paceVsLastYear}</p>
+              </aside>
             ) : null}
-          </ChartCard>
-          <ChartCard title="Latest listen">
-            {overview.latest ? (
-              <div className="track-spotlight">
-                <p className="track-spotlight__title">{overview.latest.trackName}</p>
-                <p>{overview.latest.artistName}</p>
-                <p className="muted">{formatLocalDateTime(overview.latest.ts)}</p>
-              </div>
+            {overview.beatRecord ? (
+              <aside className="overview-callout">
+                <p className="overview-callout__label">
+                  Beat your record
+                  <InfoTooltip text={METRIC_INFO.beatRecord} />
+                </p>
+                <p className="overview-callout__value">{overview.beatRecord}</p>
+              </aside>
             ) : null}
-          </ChartCard>
-          <ChartCard title="Listening habits">
-            <ul className="habit-list">
-              <li>
-                Skip-to-complete ratio:{' '}
-                <strong>{overview.skipToCompleteRatio.toFixed(2)}</strong>
-                <InfoTooltip text={METRIC_INFO.skipToCompleteRatio} />
-              </li>
-              <li>
-                Average session length:{' '}
-                <strong>{formatSessionLength(overview.avgSessionSeconds)}</strong>
-                <InfoTooltip text={METRIC_INFO.avgSessionLength} />
-              </li>
-              <li>Sessions end after a 30-minute gap with no plays.</li>
-              <li>Completed = track reached end (trackdone). Skipped = flagged in export.</li>
-            </ul>
-          </ChartCard>
-        </div>
+          </div>
+        ) : null}
 
-        {analysis.insights.length > 0 ? (
-          <ChartCard title="Highlights" subtitle="Patterns mined from your filtered history.">
+        {summaryInsights.length > 0 ? (
+          <section className="overview-section">
+            <div className="overview-section__header">
+              <h3 className="overview-section__title">Highlights</h3>
+              <p className="overview-section__subtitle">
+                Standout patterns from your filtered history.
+              </p>
+            </div>
             <div className="insights-grid">
-              {analysis.insights.map((fact) => (
+              {summaryInsights.map((fact) => (
                 <article key={fact.title} className="insight-card">
-                  <p className="insight-card__title">
-                    {fact.title}
-                    <InfoTooltip text={fact.detail} label={fact.title} />
-                  </p>
+                  <p className="insight-card__title">{fact.title}</p>
                   <p className="insight-card__value">{fact.value}</p>
                   <p className="insight-card__detail">{fact.detail}</p>
                 </article>
               ))}
             </div>
-          </ChartCard>
+          </section>
         ) : null}
       </div>
     );
+  }
+
+  if (activeTab === 'wrapped') {
+    return <WrappedTab songs={analysis.allSongs} spanLabel={filterContext.spanLabel} />;
   }
 
   if (activeTab === 'songs') {
@@ -448,6 +693,20 @@ export function Dashboard({
         theme={theme}
         compact={isCompact}
       />
+    );
+  }
+
+  if (activeTab === 'habits') {
+    return (
+      <div className="dashboard-grid">
+        <ActivitySection overview={overview} filters={filters} />
+        <BookendsSection overview={overview} />
+        <PatternsSection
+          analysis={analysis}
+          plotTheme={plotTheme}
+          showMultiYearCharts={showMultiYearCharts}
+        />
+      </div>
     );
   }
 
@@ -586,7 +845,7 @@ export function Dashboard({
     );
   }
 
-  if (activeTab === 'explore') {
+  if (activeTab === 'browse') {
     const combinedSongs = filters.combineRanking ? analysis.combinedSongs : analysis.allSongs;
     const combinedArtists = filters.combineRanking ? analysis.combinedArtists : analysis.allArtists;
 
@@ -669,126 +928,5 @@ export function Dashboard({
     );
   }
 
-  return (
-    <div className="dashboard-grid">
-      <ChartCard
-        title="Plays by month (all years combined)"
-        subtitle="All Januaries, Februaries, etc. pooled together."
-      >
-        <Plot
-          data={[
-            verticalBarChart(
-              analysis.playsByMonth.map((point) => point.label),
-              analysis.playsByMonth.map((point) => point.value),
-              analysis.playsByMonth.map((point) => point.topItem ?? ''),
-              'Plays',
-              plotTheme.accent,
-            ),
-          ]}
-          layout={{
-            ...plotTheme.layout,
-            height: 360,
-            xaxis: { title: { text: 'Month' }, gridcolor: plotTheme.grid },
-            yaxis: { title: { text: 'Plays' }, gridcolor: plotTheme.grid },
-          }}
-          config={{ displayModeBar: false, responsive: true }}
-          style={{ width: '100%' }}
-          useResizeHandler
-        />
-      </ChartCard>
-
-      <ChartCard title="Playtime by month (all years combined)">
-        <Plot
-          data={[
-            verticalBarChart(
-              analysis.hoursByMonth.map((point) => point.label),
-              analysis.hoursByMonth.map((point) => point.value),
-              analysis.hoursByMonth.map((point) => point.topItem ?? ''),
-              'Hours',
-              plotTheme.accent,
-            ),
-          ]}
-          layout={{
-            ...plotTheme.layout,
-            height: 360,
-            xaxis: { title: { text: 'Month' }, gridcolor: plotTheme.grid },
-            yaxis: { title: { text: 'Hours' }, gridcolor: plotTheme.grid },
-          }}
-          config={{ displayModeBar: false, responsive: true }}
-          style={{ width: '100%' }}
-          useResizeHandler
-        />
-      </ChartCard>
-
-      <ChartCard
-        title="Plays by day of month (all years combined)"
-        subtitle="All 1sts, 2nds, etc. across your filtered history."
-      >
-        <Plot
-          data={[
-            lineChart(
-              analysis.playsByDayOfMonth.map((point) => point.label),
-              analysis.playsByDayOfMonth.map((point) => point.value),
-              analysis.playsByDayOfMonth.map((point) => point.topItem ?? ''),
-              'Plays',
-              plotTheme.accent,
-            ),
-          ]}
-          layout={{
-            ...plotTheme.layout,
-            height: 360,
-            xaxis: { title: { text: 'Day of month' }, gridcolor: plotTheme.grid },
-            yaxis: { title: { text: 'Plays' }, gridcolor: plotTheme.grid },
-          }}
-          config={{ displayModeBar: false, responsive: true }}
-          style={{ width: '100%' }}
-          useResizeHandler
-        />
-      </ChartCard>
-
-      <ChartCard title="Plays by hour of day (local time)">
-        <Plot
-          data={[
-            verticalBarChart(
-              analysis.playsByHour.map((point) => point.label),
-              analysis.playsByHour.map((point) => point.value),
-              analysis.playsByHour.map((point) => point.topItem ?? ''),
-              'Plays',
-              plotTheme.accent,
-            ),
-          ]}
-          layout={{
-            ...plotTheme.layout,
-            height: 360,
-            xaxis: { title: { text: 'Hour (local)' }, tickangle: -45, gridcolor: plotTheme.grid },
-            yaxis: { title: { text: 'Plays' }, gridcolor: plotTheme.grid },
-          }}
-          config={{ displayModeBar: false, responsive: true }}
-          style={{ width: '100%' }}
-          useResizeHandler
-        />
-      </ChartCard>
-
-      {showMultiYearCharts && analysis.monthlyHistoryByYear.length > 1 ? (
-        <ChartCard
-          title="Listening history over the years"
-          subtitle="Monthly playtime by calendar year. Each line is one year in your filtered data."
-        >
-          <Plot
-            data={multiYearLineSeries(analysis.monthlyHistoryByYear, 'Hours')}
-            layout={{
-              ...plotTheme.layout,
-              height: 420,
-              xaxis: { title: { text: 'Month' }, gridcolor: plotTheme.grid },
-              yaxis: { title: { text: 'Hours' }, gridcolor: plotTheme.grid },
-              legend: { orientation: 'h', y: 1.15 },
-            }}
-            config={{ displayModeBar: false, responsive: true }}
-            style={{ width: '100%' }}
-            useResizeHandler
-          />
-        </ChartCard>
-      ) : null}
-    </div>
-  );
+  return null;
 }

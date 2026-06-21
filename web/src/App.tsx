@@ -176,7 +176,7 @@ export default function App() {
           <button
             type="button"
             className="site-brand"
-            onClick={() => navigate(allRecords.length > 0 ? 'dashboard' : 'landing')}
+            onClick={() => navigate('landing')}
           >
             <span className="site-brand__mark" aria-hidden="true">
               ♫

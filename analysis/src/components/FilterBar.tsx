@@ -15,6 +15,7 @@ import {
 import {
   FILTER_OPTION_INFO,
   FILTER_PRESET_INFO,
+  SPOTIFY_NEWSROOM_WRAPPED,
   WRAPPED_LIMITATIONS,
 } from '../content/siteContent';
 import { monthName } from '../utils/formatting';
@@ -407,7 +408,7 @@ export function FilterBar({
             {wrappedYearLabel(filters, bounds)}
             {' · ranked by plays · private sessions excluded'}
           </p>
-          <p className="mt-1 leading-relaxed">{WRAPPED_LIMITATIONS}</p>
+          <p className="mt-1 leading-relaxed">{WRAPPED_LIMITATIONS} <a href={SPOTIFY_NEWSROOM_WRAPPED} target="_blank" rel="noreferrer">See more here.</a></p>
         </div>
       ) : null}
     </section>

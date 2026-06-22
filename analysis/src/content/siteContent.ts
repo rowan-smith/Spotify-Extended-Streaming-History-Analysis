@@ -7,6 +7,7 @@ export const CONTRIBUTING_URL = `${REPO_URL}#contributing`;
 
 export const SPOTIFY_PRIVACY_URL = 'https://www.spotify.com/account/privacy/';
 export const SPOTIFY_PRIVACY_LABEL = 'spotify.com/account/privacy';
+export const SPOTIFY_NEWSROOM_WRAPPED = 'https://newsroom.spotify.com/2025-12-03/how-your-wrapped-is-made/';
 
 export const FILTER_PRESET_INFO = {
   default:

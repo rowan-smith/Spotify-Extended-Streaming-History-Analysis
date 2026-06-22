@@ -1,7 +1,9 @@
+import JSZip from 'jszip';
 import { buildCombinedSongs, computeInsights } from './insights';
 import { normalizeRawRecord, parseTimestamp } from './normalizeRecord';
 import { formatHourLabelLocal } from '../utils/formatting';
 import type {
+  AlbumStats,
   AnalysisResult,
   ArtistStats,
   ContentKind,
@@ -30,6 +32,52 @@ const MONTH_NAMES = [
   'November',
   'December',
 ];
+
+async function loadRecordsFromZip(file: File): Promise<StreamRecord[]> {
+  try {
+    const zip = await JSZip.loadAsync(file);
+
+    const filePaths = Object.keys(zip.files);
+    const jsonPaths = filePaths.filter((p) => p.toLowerCase().endsWith('.json'));
+
+    if (jsonPaths.length === 0) {
+      throw new Error('No .json files found in the zip archive.');
+    }
+
+    let allRecords: StreamRecord[] = [];
+
+    for (const path of jsonPaths) {
+      const entry = zip.files[path];
+      if (entry.dir) continue;
+
+      const text = await entry.async('string');
+      const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
+
+      const rawRecords: RawRecord[] = [];
+
+      if (Array.isArray(parsed)) {
+        for (const record of parsed) {
+          rawRecords.push(normalizeRawRecord(record));
+        }
+      } else {
+        rawRecords.push(normalizeRawRecord(parsed));
+      }
+
+      const cleaned = cleanRecords(rawRecords);
+      allRecords = allRecords.concat(cleaned);
+    }
+
+    if (allRecords.length === 0) {
+      throw new Error('No streaming records found inside the uploaded zip archive.');
+    }
+
+    return dedupeRecords(allRecords);
+  } catch (cause) {
+    throw new Error(
+      `Zip error: ${cause instanceof Error ? cause.message : cause}`,
+    );
+  }
+}
 
 export async function parseJsonFiles(files: File[]): Promise<RawRecord[]> {
   const records: RawRecord[] = [];
@@ -190,6 +238,35 @@ export function aggregateArtists(records: StreamRecord[]): Map<string, ArtistSta
   return map;
 }
 
+export function aggregateAlbums(records: StreamRecord[]): Map<string, AlbumStats> {
+  const map = new Map<string, AlbumStats>();
+
+  for (const record of records) {
+    if (record.contentKind !== 'music') {
+      continue;
+    }
+
+    const key = `${record.albumName}\0${record.artistName}`;
+    const existing = map.get(key);
+
+    if (existing) {
+      existing.numPlays += 1;
+      existing.totalMsPlayed += record.msPlayed;
+      existing.totalHours = existing.totalMsPlayed / 3_600_000;
+    } else {
+      map.set(key, {
+        albumName: record.albumName,
+        artistName: record.artistName,
+        numPlays: 1,
+        totalMsPlayed: record.msPlayed,
+        totalHours: record.msPlayed / 3_600_000,
+      });
+    }
+  }
+
+  return map;
+}
+
 function sortSongs(items: SongStats[], sortBy: SortMetric): SongStats[] {
   if (sortBy === 'combined') {
     return buildCombinedSongs(items);
@@ -231,6 +308,20 @@ export function topArtists(
   limit: number,
 ): ArtistStats[] {
   return sortArtists([...map.values()], sortBy).slice(0, limit);
+}
+
+function sortAlbums(items: AlbumStats[], sortBy: SortMetric): AlbumStats[] {
+  return [...items].sort((a, b) =>
+    sortBy === 'plays' ? b.numPlays - a.numPlays : b.totalHours - a.totalHours,
+  );
+}
+
+export function topAlbums(
+  map: Map<string, AlbumStats>,
+  sortBy: SortMetric,
+  limit: number,
+): AlbumStats[] {
+  return sortAlbums([...map.values()], sortBy).slice(0, limit);
 }
 
 function localDateKey(ts: Date): string {
@@ -508,9 +599,9 @@ function buildHourDistribution(records: StreamRecord[]): TimelinePoint[] {
   });
 }
 
-function buildTopByYear<T extends SongStats | ArtistStats>(
+function buildTopByYear<T extends SongStats | ArtistStats | AlbumStats>(
   records: StreamRecord[],
-  kind: 'songs' | 'artists',
+  kind: 'songs' | 'artists' | 'albums',
   sortBy: SortMetric,
   limit: number,
 ): Record<number, T[]> {
@@ -528,8 +619,10 @@ function buildTopByYear<T extends SongStats | ArtistStats>(
   for (const [year, yearRecords] of years.entries()) {
     if (kind === 'songs') {
       result[year] = topSongs(aggregateSongs(yearRecords), sortBy, limit) as T[];
-    } else {
+    } else if (kind === 'artists') {
       result[year] = topArtists(aggregateArtists(yearRecords), sortBy, limit) as T[];
+    } else {
+      result[year] = topAlbums(aggregateAlbums(yearRecords), sortBy, limit) as T[];
     }
   }
 
@@ -684,8 +777,10 @@ function computeOverview(records: StreamRecord[]): OverviewStats {
 export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResult {
   const songMap = aggregateSongs(records);
   const artistMap = aggregateArtists(records);
+  const albumMap = aggregateAlbums(records);
   const allSongs = sortSongs([...songMap.values()], 'plays');
   const allArtists = sortArtists([...artistMap.values()], 'plays');
+  const allAlbums = sortAlbums([...albumMap.values()], 'plays');
   const availableYears = [...new Set(records.map((record) => record.ts.getUTCFullYear()))].sort(
     (a, b) => a - b,
   );
@@ -696,10 +791,13 @@ export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResu
     insights: computeInsights(records),
     allSongs,
     allArtists,
+    allAlbums,
     topSongsByPlays: topSongs(songMap, 'plays', topN),
     topSongsByTime: topSongs(songMap, 'time', topN),
     topArtistsByPlays: topArtists(artistMap, 'plays', topN),
     topArtistsByTime: topArtists(artistMap, 'time', topN),
+    topAlbumsByPlays: topAlbums(albumMap, 'plays', topN),
+    topAlbumsByTime: topAlbums(albumMap, 'time', topN),
     combinedSongs: topSongs(songMap, 'combined', topN),
     combinedArtists: topArtists(artistMap, 'combined', topN),
     playsByYear: buildYearTimeline(records, 'plays'),
@@ -716,6 +814,8 @@ export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResu
     topSongsByYearByTime: buildTopByYear(records, 'songs', 'time', topN),
     topArtistsByYear: buildTopByYear(records, 'artists', 'plays', topN),
     topArtistsByYearByTime: buildTopByYear(records, 'artists', 'time', topN),
+    topAlbumsByYear: buildTopByYear(records, 'albums', 'plays', topN),
+    topAlbumsByYearByTime: buildTopByYear(records, 'albums', 'time', topN),
     availableYears,
   };
 }
@@ -749,16 +849,43 @@ export function formatHours(hours: number): string {
 }
 
 export async function loadRecordsFromFiles(files: File[]): Promise<StreamRecord[]> {
-  const raw = await parseJsonFiles(files);
-  const cleaned = cleanRecords(raw);
+  const allRecords: StreamRecord[] = [];
 
-  if (cleaned.length === 0) {
+  for (const file of files) {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      const zipRecords = await loadRecordsFromZip(file);
+      for (const record of zipRecords) {
+        allRecords.push(record);
+      }
+    } else if (file.name.toLowerCase().endsWith('.json')) {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
+
+      const rawRecords: RawRecord[] = [];
+      if (Array.isArray(parsed)) {
+        for (const record of parsed) {
+          rawRecords.push(normalizeRawRecord(record));
+        }
+      } else {
+        rawRecords.push(normalizeRawRecord(parsed));
+      }
+
+      const cleaned = cleanRecords(rawRecords);
+      for (const record of cleaned) {
+        allRecords.push(record);
+      }
+    }
+  }
+
+  const deduped = dedupeRecords(allRecords);
+
+  if (deduped.length === 0) {
     throw new Error(
-      'No streaming records found. Use Extended Streaming History JSON files (Streaming_History_*.json) or legacy endTime exports.',
+      'No streaming records found. Use Extended Streaming History JSON files (Streaming_History_*.json), legacy endTime exports, or a Spotify data zip archive.',
     );
   }
 
-  return cleaned;
+  return deduped;
 }
 
 /** @deprecated Use loadRecordsFromFiles + analyzeRecords instead */

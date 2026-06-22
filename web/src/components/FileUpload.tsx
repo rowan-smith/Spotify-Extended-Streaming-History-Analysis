@@ -26,7 +26,11 @@ export function FileUpload({
       return;
     }
 
-    const files = [...fileList].filter((file) => file.name.toLowerCase().endsWith('.json'));
+    const files = [...fileList].filter(
+      (file) =>
+        file.name.toLowerCase().endsWith('.json') ||
+        file.name.toLowerCase().endsWith('.zip'),
+    );
 
     if (files.length === 0) {
       return;
@@ -57,9 +61,10 @@ export function FileUpload({
         onDragLeave={() => setDragActive(false)}
         onDrop={onDrop}
       >
-        <p className="dropzone__title">Drop your Spotify JSON here</p>
+        <p className="dropzone__title">Drop your Spotify export here</p>
         <p className="dropzone__text">
-          Extended <code>Streaming_History_*.json</code> files or legacy exports. Select
+          A <code>my_spotify_data.zip</code> file, or the individual
+          {' '}<code>Streaming_History_*.json</code> files inside it. Select
           multiple if your download is split.
         </p>
         {onOpenRequestData ? (
@@ -77,7 +82,7 @@ export function FileUpload({
             disabled={loading}
             onClick={() => inputRef.current?.click()}
           >
-            {loading ? 'Processing…' : 'Choose JSON files'}
+            {loading ? 'Processing…' : 'Choose files'}
           </button>
           {onLoadSampleData ? (
             <button
@@ -102,7 +107,7 @@ export function FileUpload({
         <input
           ref={inputRef}
           type="file"
-          accept=".json,application/json"
+          accept=".json,application/json,.zip,application/zip,application/x-zip-compressed"
           multiple
           hidden
           onChange={onInputChange}

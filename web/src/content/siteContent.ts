@@ -128,14 +128,14 @@ export const REQUEST_DATA_STEPS = [
   },
   {
     title: 'Download the ZIP',
-    body: 'Open the link in Spotify’s ready-to-download email and save the archive. Extract it on your computer.',
+    body: 'Open the link in Spotify’s ready-to-download email and save the archive. You can upload the ZIP file here directly — no need to extract it first.',
   },
   {
-    title: 'Find the JSON files',
-    body: 'Look for Streaming_History_Audio_*.json (extended format) or older endTime JSON files. You can select multiple files if your export is split.',
+    title: 'Upload the ZIP',
+    body: 'Drag your downloaded ZIP file onto this site or use the file picker. The Streaming_History_Audio_*.json files inside are extracted automatically — no manual extraction needed.',
   },
   {
-    title: 'Load them here',
-    body: 'Drag the JSON files onto this site or use the file picker on the home page. Processing stays in your browser.',
+    title: 'Individual JSON files (fallback)',
+    body: 'If you only have individual JSON files (Streaming_History_Audio_*.json or older endTime exports), you can still drag them here or use the file picker. You can select multiple files if your export is split.',
   },
 ] as const;

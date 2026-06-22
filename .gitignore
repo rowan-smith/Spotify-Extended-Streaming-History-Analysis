@@ -1,5 +1,6 @@
 /MyData/
-/web/node_modules/
-/web/dist/
+/analysis/node_modules/
 .venv/
 .idea/
+/analysis/docs/assets/
+*.tsbuildinfo

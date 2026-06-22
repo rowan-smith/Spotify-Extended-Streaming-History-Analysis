@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Explore your Spotify Extended Streaming History locally in your browser. Your data never leaves your device."
+    />
+    <title>Spotify Streaming History Explorer</title>
+    <link id="app-favicon" rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script>
+      (function () {
+        const stored = localStorage.getItem('spotify-history-theme');
+        const theme =
+          stored === 'light' || stored === 'dark'
+            ? stored
+            : window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark';
+        document.documentElement.dataset.theme = theme;
+        const favicon = document.getElementById('app-favicon');
+        if (favicon) {
+          favicon.href = theme === 'dark' ? './favicon-dark.svg' : './favicon.svg';
+        }
+      })();
+    </script>
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "8117ad06927b43a88f0760ce925090ec"}'></script>
+    <!-- End Cloudflare Web Analytics -->
+    <script type="module" crossorigin src="./assets/index-BBHL72oZ.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-BHe-jwch.js">
+    <link rel="modulepreload" crossorigin href="./assets/plotly-LYBHHYte.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-vendor-B6rhD9oM.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-CyhYFv-6.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

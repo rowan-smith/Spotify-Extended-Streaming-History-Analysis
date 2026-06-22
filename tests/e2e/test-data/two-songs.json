@@ -1,0 +1,32 @@
+[
+  {
+    "ts": "2024-01-15T10:30:00Z",
+    "ms_played": 120000,
+    "master_metadata_track_name": "Bohemian Rhapsody",
+    "master_metadata_album_artist_name": "Queen",
+    "master_metadata_album_album_name": "A Night at the Opera",
+    "reason_end": "trackdone",
+    "skipped": false,
+    "incognito_mode": false
+  },
+  {
+    "ts": "2024-06-20T14:00:00Z",
+    "ms_played": 90000,
+    "master_metadata_track_name": "Hotel California",
+    "master_metadata_album_artist_name": "Eagles",
+    "master_metadata_album_album_name": "Hotel California",
+    "reason_end": "trackdone",
+    "skipped": false,
+    "incognito_mode": false
+  },
+  {
+    "ts": "2024-03-10T18:00:00Z",
+    "ms_played": 35000,
+    "master_metadata_track_name": "Stairway to Heaven",
+    "master_metadata_album_artist_name": "Led Zeppelin",
+    "master_metadata_album_album_name": "Led Zeppelin IV",
+    "reason_end": "fwdbtn",
+    "skipped": true,
+    "incognito_mode": false
+  }
+]

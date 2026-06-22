@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'web/**'
+      - 'analysis/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -29,20 +29,20 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: analysis/package-lock.json
 
       - name: Install dependencies
-        working-directory: web
+        working-directory: analysis
         run: npm ci
 
       - name: Build site
-        working-directory: web
+        working-directory: analysis
         run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: analysis/docs
 
   deploy:
     needs: build

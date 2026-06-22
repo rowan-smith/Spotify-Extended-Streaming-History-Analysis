@@ -23,6 +23,11 @@ export const DASHBOARD_TABS: DashboardTab[] = [
     description: 'Top artists by plays or playtime, with optional yearly drill-down.',
   },
   {
+    id: 'albums',
+    label: 'Albums',
+    description: 'Top albums by plays or playtime, with optional yearly drill-down.',
+  },
+  {
     id: 'timeline',
     label: 'Over time',
     description: 'How your listening changed day by day and year by year.',

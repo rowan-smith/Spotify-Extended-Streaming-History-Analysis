@@ -49,6 +49,14 @@ export interface ArtistStats {
   totalHours: number;
 }
 
+export interface AlbumStats {
+  albumName: string;
+  artistName: string;
+  numPlays: number;
+  totalMsPlayed: number;
+  totalHours: number;
+}
+
 export interface OverviewStats {
   totalPlays: number;
   totalHours: number;
@@ -129,10 +137,13 @@ export interface AnalysisResult {
   insights: InsightFact[];
   allSongs: SongStats[];
   allArtists: ArtistStats[];
+  allAlbums: AlbumStats[];
   topSongsByPlays: SongStats[];
   topSongsByTime: SongStats[];
   topArtistsByPlays: ArtistStats[];
   topArtistsByTime: ArtistStats[];
+  topAlbumsByPlays: AlbumStats[];
+  topAlbumsByTime: AlbumStats[];
   combinedSongs: SongStats[];
   combinedArtists: ArtistStats[];
   playsByYear: TimelinePoint[];
@@ -149,12 +160,14 @@ export interface AnalysisResult {
   topSongsByYearByTime: Record<number, SongStats[]>;
   topArtistsByYear: Record<number, ArtistStats[]>;
   topArtistsByYearByTime: Record<number, ArtistStats[]>;
+  topAlbumsByYear: Record<number, AlbumStats[]>;
+  topAlbumsByYearByTime: Record<number, AlbumStats[]>;
   availableYears: number[];
 }
 
 export type SortMetric = 'plays' | 'time' | 'combined';
 
-export type TabId = 'summary' | 'wrapped' | 'songs' | 'artists' | 'timeline' | 'habits' | 'browse';
+export type TabId = 'summary' | 'wrapped' | 'songs' | 'artists' | 'albums' | 'timeline' | 'habits' | 'browse';
 
 export type AppView =
   | 'landing'

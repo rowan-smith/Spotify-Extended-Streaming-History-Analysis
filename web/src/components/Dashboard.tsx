@@ -16,6 +16,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Theme } from '../hooks/useTheme';
 import { formatLocalDateTime, formatSessionLength } from '../utils/formatting';
 import type {
+  AlbumStats,
   AnalysisFilters,
   AnalysisResult,
   ArtistStats,
@@ -164,9 +165,9 @@ function YearDrilldownChart({
 }: {
   title: string;
   years: number[];
-  dataByPlays: Record<number, SongStats[] | ArtistStats[]>;
-  dataByTime: Record<number, SongStats[] | ArtistStats[]>;
-  labelKey: 'trackName' | 'artistName';
+  dataByPlays: Record<number, SongStats[] | ArtistStats[] | AlbumStats[]>;
+  dataByTime: Record<number, SongStats[] | ArtistStats[] | AlbumStats[]>;
+  labelKey: 'trackName' | 'artistName' | 'albumName';
   theme: Theme;
   compact: boolean;
 }) {
@@ -176,11 +177,15 @@ function YearDrilldownChart({
 
   const rows = (sortMetric === 'plays' ? dataByPlays[year] : dataByTime[year]) ?? [];
 
-  const labels = rows.map((row) =>
-    labelKey === 'trackName'
-      ? (row as SongStats).trackName
-      : (row as ArtistStats).artistName,
-  );
+  const labels = rows.map((row) => {
+    if (labelKey === 'trackName') {
+      return (row as SongStats).trackName;
+    }
+    if (labelKey === 'artistName') {
+      return (row as ArtistStats).artistName;
+    }
+    return (row as AlbumStats).albumName;
+  });
 
   const values = rows.map((row) => {
     if (sortMetric === 'plays') {
@@ -190,10 +195,11 @@ function YearDrilldownChart({
   });
 
   const hover = rows.map((row) => {
-    const label =
-      labelKey === 'trackName'
-        ? (row as SongStats).trackName
-        : (row as ArtistStats).artistName;
+    const label = (() => {
+      if (labelKey === 'trackName') return (row as SongStats).trackName;
+      if (labelKey === 'artistName') return (row as ArtistStats).artistName;
+      return (row as AlbumStats).albumName;
+    })();
 
     if (sortMetric === 'plays') {
       return `${label}<br>${formatHours(row.totalHours)} total`;
@@ -206,10 +212,11 @@ function YearDrilldownChart({
   const chartLayout = rankedBarChartLayout(labels.length, compact);
 
   const mobileItems = rows.map((row) => {
-    const primary =
-      labelKey === 'trackName'
-        ? (row as SongStats).trackName
-        : (row as ArtistStats).artistName;
+    const primary = (() => {
+      if (labelKey === 'trackName') return (row as SongStats).trackName;
+      if (labelKey === 'artistName') return (row as ArtistStats).artistName;
+      return (row as AlbumStats).albumName;
+    })();
 
     const plays = 'numPlays' in row ? row.numPlays : row.listenCount;
 
@@ -450,6 +457,89 @@ function ArtistsTab({
           dataByPlays={analysis.topArtistsByYear}
           dataByTime={analysis.topArtistsByYearByTime}
           labelKey="artistName"
+          theme={theme}
+          compact={compact}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AlbumsTab({
+  analysis,
+  topNLabel,
+  years,
+  showMultiYearCharts,
+  theme,
+  compact,
+}: {
+  analysis: AnalysisResult;
+  topNLabel: number;
+  years: number[];
+  showMultiYearCharts: boolean;
+  theme: Theme;
+  compact: boolean;
+}) {
+  const [metric, setMetric] = useState<'plays' | 'time'>('plays');
+  const albums = metric === 'plays' ? analysis.topAlbumsByPlays : analysis.topAlbumsByTime;
+
+  return (
+    <div className="dashboard-grid">
+      <MetricTabs
+        active={metric}
+        onChange={setMetric}
+        playsInfo={PLAYS_VS_TIME_INFO.plays}
+        timeInfo={PLAYS_VS_TIME_INFO.time}
+      />
+      <p className="metric-explainer">
+        {metric === 'plays' ? PLAYS_VS_TIME_INFO.plays : PLAYS_VS_TIME_INFO.time}
+      </p>
+
+      {compact ? (
+        <ChartCard
+          title={`Top ${topNLabel} albums by ${metric === 'plays' ? 'plays' : 'playtime'}`}
+          subtitle="Ranked list optimised for smaller screens."
+        >
+          <MobileRankedList
+            metricLabel={metric === 'plays' ? 'Plays' : 'Hours'}
+            items={albums.map((album) => ({
+              primary: album.albumName,
+              secondary: album.artistName,
+              value: metric === 'plays' ? album.numPlays : album.totalHours,
+              valueText:
+                metric === 'plays'
+                  ? album.numPlays.toLocaleString()
+                  : formatHours(album.totalHours),
+              meta:
+                metric === 'plays'
+                  ? `${formatHours(album.totalHours)} total`
+                  : `${album.numPlays.toLocaleString()} plays`,
+            }))}
+          />
+        </ChartCard>
+      ) : (
+        <RankedBarChart
+          title={`Top ${topNLabel} albums by ${metric === 'plays' ? 'plays' : 'playtime'}`}
+          labels={albums.map((album) => album.albumName)}
+          values={albums.map((album) => (metric === 'plays' ? album.numPlays : album.totalHours))}
+          hover={albums.map((album) =>
+            metric === 'plays'
+              ? `${album.artistName}<br>${formatHours(album.totalHours)} total`
+              : `${album.artistName}<br>${album.numPlays.toLocaleString()} plays`,
+          )}
+          xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
+          theme={theme}
+          compact={compact}
+        />
+      )}
+
+      {showMultiYearCharts ? (
+        <YearDrilldownChart
+          title="Top albums by year"
+          years={years}
+          dataByPlays={analysis.topAlbumsByYear}
+          dataByTime={analysis.topAlbumsByYearByTime}
+          labelKey="albumName"
           theme={theme}
           compact={compact}
         />
@@ -843,6 +933,19 @@ export function Dashboard({
   if (activeTab === 'artists') {
     return (
       <ArtistsTab
+        analysis={analysis}
+        topNLabel={topNLabel}
+        years={years}
+        showMultiYearCharts={showMultiYearCharts}
+        theme={theme}
+        compact={isCompact}
+      />
+    );
+  }
+
+  if (activeTab === 'albums') {
+    return (
+      <AlbumsTab
         analysis={analysis}
         topNLabel={topNLabel}
         years={years}

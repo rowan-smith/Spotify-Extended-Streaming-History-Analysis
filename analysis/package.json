@@ -12,12 +12,19 @@
     "test:e2e": "npx playwright test --config ../tests/playwright.config.ts"
   },
   "dependencies": {
+    "@base-ui/react": "^1.6.0",
     "@faker-js/faker": "^10.5.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "jszip": "^3.10.1",
+    "lucide-react": "^1.21.0",
     "plotly.js-dist-min": "^3.6.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-plotly.js": "^4.0.0"
+    "react-plotly.js": "^4.0.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",

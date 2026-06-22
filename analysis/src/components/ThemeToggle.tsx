@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import type { ThemePreference } from '../hooks/useTheme';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface ThemeToggleProps {
   preference: ThemePreference;
@@ -10,8 +11,8 @@ function SystemIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
@@ -29,8 +30,8 @@ function SunIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
@@ -48,8 +49,8 @@ function MoonIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
@@ -70,22 +71,23 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: () => ReactElement
 
 export function ThemeToggle({ preference, onChange }: ThemeToggleProps) {
   return (
-    <div className="theme-select" role="group" aria-label="Theme">
+    <ToggleGroup
+      value={[preference]}
+      onValueChange={(value) => {
+        if (value.length > 0) onChange(value[0] as ThemePreference);
+      }}
+      aria-label="Theme"
+    >
       {OPTIONS.map(({ value, label, Icon }) => (
-        <button
+        <ToggleGroupItem
           key={value}
-          type="button"
-          className={`theme-select__button${
-            preference === value ? ' theme-select__button--active' : ''
-          }`}
+          value={value}
           aria-label={label}
-          aria-pressed={preference === value}
-          title={label}
-          onClick={() => onChange(value)}
+          className="p-2 sm:p-1.5 rounded-md"
         >
           <Icon />
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }

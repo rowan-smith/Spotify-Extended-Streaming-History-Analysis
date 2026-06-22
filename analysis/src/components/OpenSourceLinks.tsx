@@ -1,3 +1,4 @@
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { REPO_URL } from '../content/siteContent';
 
 function GitHubIcon() {
@@ -13,15 +14,24 @@ function GitHubIcon() {
 
 export function OpenSourceLinks() {
   return (
-    <a
-      href={REPO_URL}
-      target="_blank"
-      rel="noreferrer"
-      className="site-nav__icon-link"
-      aria-label="View source on GitHub"
-      title="View on GitHub"
-    >
-      <GitHubIcon />
-    </a>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center w-10 h-10 sm:w-9 sm:h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="View source on GitHub"
+              title={undefined}
+            />
+          }
+        >
+          <GitHubIcon />
+        </TooltipTrigger>
+        <TooltipContent>View on GitHub</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

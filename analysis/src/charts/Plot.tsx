@@ -19,7 +19,7 @@ export default function Plot(props: PlotProps) {
   }, []);
 
   return (
-    <div ref={containerRef} className="plot-container">
+    <div ref={containerRef} className="w-full min-w-0 min-h-0 overflow-x-auto">
       <PlotlyComponent {...props} />
     </div>
   );

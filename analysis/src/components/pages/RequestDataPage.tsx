@@ -3,7 +3,8 @@ import {
   REQUEST_DATA_STEPS,
   SPOTIFY_PRIVACY_LABEL,
   SPOTIFY_PRIVACY_URL,
-} from '../content/siteContent';
+} from '../../content/siteContent';
+import { Button } from '@/components/ui/button';
 
 const REQUEST_DATA_IMAGE_BASE = './images/request-data/';
 
@@ -29,35 +30,40 @@ interface RequestDataPageProps {
 
 export function RequestDataPage({ onBack, backLabel = 'Back to home' }: RequestDataPageProps) {
   return (
-    <div className="content-page">
-      <div className="page-toolbar">
-        <button type="button" className="button button--ghost" onClick={onBack}>
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="mb-4">
+        <Button variant="ghost" size="sm" onClick={onBack}>
           {backLabel}
-        </button>
+        </Button>
       </div>
 
-      <header className="content-page__header">
-        <h1>Request your extended streaming history</h1>
-        <p>
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Request your extended streaming history</h1>
+        <p className="text-sm text-muted-foreground">
           Spotify provides Extended Streaming History as part of a privacy data export. Follow
           these steps, then return here to analyze the JSON files locally.
         </p>
       </header>
 
-      <ol className="step-list">
+      <ol className="relative">
         {REQUEST_DATA_STEPS.map((step, index) => (
-          <li key={step.title} className="step-list__item">
-            <span className="step-list__number">{index + 1}</span>
-            <div>
-              <h2>{step.title}</h2>
-              <p>{renderStepBody(step.body)}</p>
+          <li key={step.title} className="relative pl-10 pb-8 last:pb-0">
+            {index < REQUEST_DATA_STEPS.length - 1 ? (
+              <span className="absolute left-[15px] top-0 bottom-0 w-px bg-border" aria-hidden="true" />
+            ) : null}
+            <span className="absolute left-0 top-0 inline-grid place-items-center w-8 h-8 rounded-full bg-accent text-accent-foreground text-sm font-bold z-10">
+              {index + 1}
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold mb-1">{step.title}</h2>
+              <p className="text-xs text-muted-foreground leading-relaxed">{renderStepBody(step.body)}</p>
               {'image' in step && step.image ? (
                 <figure
-                  className={`step-list__figure${
+                  className={`mt-3 ${
                     'imageVariant' in step && step.imageVariant === 'compact'
-                      ? ' step-list__figure--compact'
+                      ? 'max-w-sm'
                       : 'imageVariant' in step && step.imageVariant === 'inline'
-                        ? ' step-list__figure--inline'
+                        ? 'inline-block max-w-[200px] ml-2 align-top'
                         : ''
                   }`}
                 >
@@ -65,6 +71,7 @@ export function RequestDataPage({ onBack, backLabel = 'Back to home' }: RequestD
                     src={`${REQUEST_DATA_IMAGE_BASE}${step.image}`}
                     alt={'imageAlt' in step ? step.imageAlt : ''}
                     loading="lazy"
+                    className="rounded-lg border border-border w-full"
                   />
                 </figure>
               ) : null}

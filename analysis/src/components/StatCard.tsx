@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { InfoTooltip } from './InfoTooltip';
+import { cn } from '@/lib/utils';
 
 interface StatCardProps {
   label: string;
@@ -11,65 +12,19 @@ interface StatCardProps {
 
 export function StatCard({ label, value, hint, info, variant = 'default' }: StatCardProps) {
   return (
-    <article className={`stat-card${variant === 'hero' ? ' stat-card--hero' : ''}`}>
-      <p className="stat-label">
-        {label}
-        {info ? <InfoTooltip text={info} label={label} /> : null}
-      </p>
-      <p className="stat-value">{value}</p>
-      {hint ? <p className="stat-hint">{hint}</p> : null}
-    </article>
-  );
-}
-
-interface ChartCardProps {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-}
-
-export function ChartCard({ title, subtitle, children }: ChartCardProps) {
-  return (
-    <section className="chart-card">
-      <div className="chart-card__header">
-        <h3>{title}</h3>
-        {subtitle ? <p>{subtitle}</p> : null}
-      </div>
-      <div className="chart-card__body">{children}</div>
-    </section>
-  );
-}
-
-interface MetricTabsProps {
-  active: 'plays' | 'time';
-  onChange: (value: 'plays' | 'time') => void;
-  playsInfo: string;
-  timeInfo: string;
-}
-
-export function MetricTabs({ active, onChange, playsInfo, timeInfo }: MetricTabsProps) {
-  return (
-    <div className="metric-tabs" role="tablist" aria-label="Ranking metric">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={active === 'plays'}
-        className={`metric-tabs__button${active === 'plays' ? ' metric-tabs__button--active' : ''}`}
-        onClick={() => onChange('plays')}
-      >
-        Plays
-        <InfoTooltip text={playsInfo} label="Plays metric" />
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={active === 'time'}
-        className={`metric-tabs__button${active === 'time' ? ' metric-tabs__button--active' : ''}`}
-        onClick={() => onChange('time')}
-      >
-        Playtime
-        <InfoTooltip text={timeInfo} label="Playtime metric" />
-      </button>
-    </div>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-normal text-muted-foreground flex items-center gap-1.5">
+          {label}
+          {info ? <InfoTooltip text={info} label={label} /> : null}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <p className={cn('text-2xl font-bold leading-tight break-words', variant === 'hero' && 'text-3xl')}>
+          {value}
+        </p>
+        {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+      </CardContent>
+    </Card>
   );
 }

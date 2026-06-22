@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-export type SortDirection = 'asc' | 'desc';
+type SortDirection = 'asc' | 'desc';
 
 interface Column<T> {
   key: keyof T;
@@ -78,11 +81,11 @@ export function DataTable<T extends object>({
   }
 
   return (
-    <div className="data-table">
-      <div className="data-table__toolbar">
-        <input
+    <div>
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <Input
           type="search"
-          className="data-table__search"
+          className="max-w-sm"
           value={query}
           placeholder={searchPlaceholder}
           onChange={(event) => {
@@ -90,68 +93,74 @@ export function DataTable<T extends object>({
             setPage(0);
           }}
         />
-        <p className="data-table__meta">
+        <p className="text-xs text-muted-foreground">
           {filteredRows.length.toLocaleString()} row{filteredRows.length === 1 ? '' : 's'}
         </p>
       </div>
 
-      <div className="data-table__scroll">
-        <table>
-          <thead>
-            <tr>
+      <div className="rounded-md border border-border overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
               {columns.map((column) => (
-                <th key={String(column.key)} className={column.align === 'right' ? 'align-right' : ''}>
-                  <button type="button" className="sort-button" onClick={() => toggleSort(column.key)}>
+                <TableHead key={String(column.key)} className={column.align === 'right' ? 'text-right' : ''}>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 bg-transparent border-0 cursor-pointer hover:text-foreground transition-colors font-medium text-xs"
+                    onClick={() => toggleSort(column.key)}
+                  >
                     {column.label}
                     {sortKey === column.key ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : ''}
                   </button>
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {pageRows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length}>{emptyMessage}</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
             ) : (
               pageRows.map((row, index) => (
-                <tr key={rowKey(row, index)}>
+                <TableRow key={rowKey(row, index)}>
                   {columns.map((column) => (
-                    <td
+                    <TableCell
                       key={String(column.key)}
-                      className={column.align === 'right' ? 'align-right' : ''}
+                      className={column.align === 'right' ? 'text-right' : ''}
                     >
                       {column.render ? column.render(row) : String(row[column.key] ?? '')}
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <div className="data-table__pagination">
-        <button
-          type="button"
-          className="button button--ghost"
+      <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
+        <Button
+          variant="ghost"
+          size="sm"
           disabled={currentPage === 0}
           onClick={() => setPage((value) => value - 1)}
         >
           Previous
-        </button>
-        <span>
+        </Button>
+        <span className="text-xs text-muted-foreground">
           Page {currentPage + 1} of {totalPages}
         </span>
-        <button
-          type="button"
-          className="button button--ghost"
+        <Button
+          variant="ghost"
+          size="sm"
           disabled={currentPage >= totalPages - 1}
           onClick={() => setPage((value) => value + 1)}
         >
           Next
-        </button>
+        </Button>
       </div>
     </div>
   );

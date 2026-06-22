@@ -9,9 +9,8 @@ import {
   markCustomPreset,
   applyQuickYearRange,
   getFilterContext,
-  DEFAULT_TOP_N,
-  WRAPPED_TOP_N,
 } from '../../analysis/src/analysis/filters';
+import { DEFAULT_TOP_N, WRAPPED_TOP_N } from '../../analysis/src/analysis/filterPresets';
 import type { FilterBounds, StreamRecord } from '../../analysis/src/types';
 
 const bounds: FilterBounds = { yearMin: 2020, yearMax: 2024 };

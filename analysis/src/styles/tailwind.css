@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--accent);
+  --color-primary-foreground: #08140c;
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--bg-elevated);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--bg-elevated);
+  --color-popover-foreground: var(--text);
+  --color-secondary: var(--bg-muted);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--bg-muted);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: #08140c;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #f8fafc;
+  --color-border: var(--border);
+  --color-input: var(--border-strong);
+  --color-ring: var(--accent);
+  --radius: 1rem;
+}
+
+@layer base {
+  :root {
+    --background: var(--bg);
+    --foreground: var(--text);
+    --card: var(--bg-elevated);
+    --card-foreground: var(--text);
+    --popover: var(--bg-elevated);
+    --popover-foreground: var(--text);
+    --primary: var(--accent);
+    --primary-foreground: #08140c;
+    --secondary: var(--bg-muted);
+    --secondary-foreground: var(--text);
+    --muted: var(--bg-muted);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--accent);
+    --accent-foreground: #08140c;
+    --destructive: #ef4444;
+    --destructive-foreground: #f8fafc;
+    --border: var(--border);
+    --input: var(--border-strong);
+    --ring: var(--accent);
+    --radius: 1rem;
+  }
+}

@@ -45,3 +45,31 @@ export function formatHourLabelLocal(hour: number): string {
 export function monthName(month: number): string {
   return new Date(2000, month - 1, 1).toLocaleString(undefined, { month: 'long' });
 }
+
+export function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
+export function formatHours(hours: number): string {
+  if (hours < 1) {
+    return `${Math.round(hours * 60)} min`;
+  }
+  if (hours < 24) {
+    return `${hours.toFixed(1)} hr`;
+  }
+  return `${(hours / 24).toFixed(1)} days`;
+}

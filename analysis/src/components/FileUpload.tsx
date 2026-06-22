@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { UPLOAD_DISCLAIMER } from '../content/assumptions';
+import { Button } from '@/components/ui/button';
 import { InfoTooltip } from './InfoTooltip';
 
 interface FileUploadProps {
@@ -51,9 +52,13 @@ export function FileUpload({
   }
 
   return (
-    <section className="upload-panel upload-panel--hero">
+    <section className="max-w-2xl mx-auto">
       <div
-        className={`dropzone dropzone--hero${dragActive ? ' dropzone--active' : ''}`}
+        className={`rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+          dragActive
+            ? 'border-accent bg-accent/5'
+            : 'border-border hover:border-muted-foreground/50'
+        }`}
         onDragOver={(event) => {
           event.preventDefault();
           setDragActive(true);
@@ -61,46 +66,46 @@ export function FileUpload({
         onDragLeave={() => setDragActive(false)}
         onDrop={onDrop}
       >
-        <p className="dropzone__title">Drop your Spotify export here</p>
-        <p className="dropzone__text">
-          A <code>my_spotify_data.zip</code> file, or the individual
-          {' '}<code>Streaming_History_*.json</code> files inside it. Select
+        <p className="text-lg font-semibold mb-2">Drop your Spotify export here</p>
+        <p className="text-sm text-muted-foreground mb-4">
+          A <code className="text-xs bg-muted px-1 py-0.5 rounded">my_spotify_data.zip</code> file, or the individual
+          {' '}<code className="text-xs bg-muted px-1 py-0.5 rounded">Streaming_History_*.json</code> files inside it. Select
           multiple if your download is split.
         </p>
         {onOpenRequestData ? (
-          <p className="dropzone__help">
+          <p className="text-xs text-muted-foreground mb-4">
             Don&apos;t have your export yet?{' '}
-            <button type="button" className="text-link" onClick={onOpenRequestData}>
+            <button type="button" className="text-accent underline underline-offset-2 hover:no-underline bg-transparent border-0 cursor-pointer" onClick={onOpenRequestData}>
               Get your data
             </button>
           </p>
         ) : null}
-        <div className="dropzone__actions">
-          <button
-            type="button"
-            className="button button--primary button--large"
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            variant="primary"
+            size="lg"
             disabled={loading}
             onClick={() => inputRef.current?.click()}
           >
             {loading ? 'Processing…' : 'Choose files'}
-          </button>
+          </Button>
           {onLoadSampleData ? (
-            <button
-              type="button"
-              className="button button--ghost button--large"
+            <Button
+              variant="ghost"
+              size="lg"
               disabled={loading}
               onClick={onLoadSampleData}
             >
               Try sample data
-            </button>
+            </Button>
           ) : null}
         </div>
         {onLoadSampleData ? (
-          <p className="dropzone__sample-note">
+          <p className="text-xs text-muted-foreground mt-4">
             Preview the dashboard with fictional demo data while you wait for your export.
           </p>
         ) : null}
-        <p className="upload-disclaimer">
+        <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
           {UPLOAD_DISCLAIMER}
           <InfoTooltip text="Your files stay in this browser tab only. Close the tab and your data is gone." />
         </p>
@@ -113,15 +118,15 @@ export function FileUpload({
           onChange={onInputChange}
         />
         {selectedNames.length > 0 ? (
-          <ul className="file-list">
+          <ul className="mt-4 text-xs text-left text-muted-foreground space-y-1">
             {selectedNames.map((name) => (
-              <li key={name}>{name}</li>
+              <li key={name} className="truncate">{name}</li>
             ))}
           </ul>
         ) : null}
       </div>
 
-      {error ? <p className="error-banner">{error}</p> : null}
+      {error ? <p className="mt-4 rounded-lg border border-border bg-destructive/10 text-destructive px-4 py-3 text-sm">{error}</p> : null}
     </section>
   );
 }

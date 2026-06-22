@@ -1,17 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import {
   cleanRecords,
+  analyzeRecords,
+} from '../../analysis/src/analysis/processData';
+import {
   aggregateSongs,
   aggregateArtists,
   aggregateAlbums,
   topSongs,
   topArtists,
   topAlbums,
+  songKey,
+} from '../../analysis/src/analysis/aggregation';
+import {
   formatDuration,
   formatHours,
-  songKey,
-  analyzeRecords,
-} from '../../analysis/src/analysis/processData';
+} from '../../analysis/src/utils/formatting';
 import { normalizeRawRecord } from '../../analysis/src/analysis/normalizeRecord';
 import type { RawRecord, StreamRecord } from '../../analysis/src/types';
 

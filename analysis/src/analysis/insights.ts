@@ -18,6 +18,7 @@ export const SUMMARY_INSIGHT_PRIORITY = [
   'Favorite weekday',
   'Longest listening streak',
   'Biggest binge day',
+  'Best discovery day',
   'Seasonal favorite',
 ] as const;
 
@@ -141,6 +142,15 @@ export function computeInsights(records: StreamRecord[]): InsightFact[] {
     });
   }
 
+  const bestDiscoveryDay = computeBestDiscoveryDay(records);
+  if (bestDiscoveryDay) {
+    facts.push({
+      title: 'Best discovery day',
+      value: `${bestDiscoveryDay.discoveries} new tracks`,
+      detail: `${formatInsightDate(bestDiscoveryDay.day)} · first discovery was ${bestDiscoveryDay.topDiscovery}`,
+    });
+  }
+
   const skipMood = computeSkipRate(records);
   facts.push({
     title: 'Skip mood',
@@ -252,6 +262,41 @@ function computeSeasonalFavorite(records: StreamRecord[]): {
   }
 
   return best;
+}
+
+function computeBestDiscoveryDay(records: StreamRecord[]): {
+  day: string;
+  discoveries: number;
+  topDiscovery: string;
+} | null {
+  const seen = new Set<string>();
+  const discoveriesByDay = new Map<string, string[]>();
+
+  for (const record of records) {
+    const key = songKey(record.trackName, record.artistName);
+    if (!seen.has(key)) {
+      seen.add(key);
+      const day = dateKey(record.ts);
+      const discoveries = discoveriesByDay.get(day) ?? [];
+      discoveries.push(record.trackName);
+      discoveriesByDay.set(day, discoveries);
+    }
+  }
+
+  let bestDay = '';
+  let bestCount = 0;
+
+  for (const [day, discoveries] of discoveriesByDay.entries()) {
+    if (discoveries.length > bestCount) {
+      bestCount = discoveries.length;
+      bestDay = day;
+    }
+  }
+
+  if (bestCount === 0) return null;
+
+  const topDiscovery = discoveriesByDay.get(bestDay)![0];
+  return { day: bestDay, discoveries: bestCount, topDiscovery };
 }
 
 function computeSkipRate(records: StreamRecord[]): { label: string; detail: string } {

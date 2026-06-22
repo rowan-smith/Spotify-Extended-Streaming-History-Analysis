@@ -18,10 +18,6 @@ npx vitest run              # unit tests
 npx playwright test          # e2e tests
 ```
 
-### Cloudflare Web Analytics (optional)
-
-Uncomment the beacon script in `web/index.html` and set your token from the Cloudflare dashboard to track anonymous page views.
-
 ## Contributing
 
 Contributions are welcome.
@@ -41,7 +37,3 @@ Contributions are welcome.
 ## Report issues
 
 Bug reports and feature requests: [GitHub Issues](https://github.com/rowan-smith/Spotify-Extended-Streaming-History-Analysis/issues)
-
-## License
-
-See repository license file if present; otherwise treat as open source for personal and educational use.

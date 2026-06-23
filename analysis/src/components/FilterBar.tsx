@@ -124,9 +124,9 @@ export function FilterBar({
 
   return (
     <section className="mb-4" aria-label="Analysis filters">
-      <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-3 mb-4">
         <h2 className="text-lg font-semibold">Explore your data</h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Showing {filteredPlays.toLocaleString()} of {totalPlays.toLocaleString()} plays
           {filters.preset === 'custom' ? ' · Custom filters' : null}
           {activeCount > 0
@@ -135,11 +135,11 @@ export function FilterBar({
         </p>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/50 p-3 sm:p-3">
+      <div className="rounded-xl border border-border bg-muted/50 p-4">
         <h3 className="text-sm font-medium text-foreground mb-3">Filters</h3>
 
-        <div className="sm:flex sm:flex-row sm:items-center sm:justify-between flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="sm:flex sm:flex-row sm:items-center sm:justify-between flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <ToggleGroup
               value={[filters.preset]}
               onValueChange={(value) => {
@@ -159,8 +159,8 @@ export function FilterBar({
               ))}
             </ToggleGroup>
 
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
-              <span>Year</span>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+              <span className="font-medium text-foreground">Year</span>
               <Select
                 value={yearValue}
                 onChange={(event) => setQuickYear(event.target.value)}

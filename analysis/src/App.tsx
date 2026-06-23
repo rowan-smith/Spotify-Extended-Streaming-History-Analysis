@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { Music } from 'lucide-react';
 import { LandingPage } from './components/pages/LandingPage';
 import { OpenSourceLinks } from './components/OpenSourceLinks';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -64,7 +65,7 @@ export default function App() {
             className="flex items-center gap-2 text-foreground hover:text-accent transition-colors cursor-pointer bg-transparent border-0"
             onClick={() => navigate('landing')}
           >
-            <span aria-hidden="true" className="text-lg">♫</span>
+            <Music className="w-4 h-4 text-accent" aria-hidden="true" />
             <span className="font-semibold text-sm hidden sm:inline">Spotify History Explorer</span>
           </button>
 
@@ -95,7 +96,7 @@ export default function App() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1 sm:gap-1.5 ml-auto pl-2 border-l border-border">
             <ThemeToggle preference={preference} onChange={setTheme} />
             <OpenSourceLinks />
             <button
@@ -164,8 +165,8 @@ export default function App() {
 
               {analysis ? (
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabId)}>
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                    <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3 mb-5 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <TabsList className="flex-wrap hidden sm:flex">
                         {dashboardTabs.map((tab) => (
                           <TabsTrigger key={tab.id} value={tab.id} className="whitespace-nowrap px-4">
@@ -192,16 +193,18 @@ export default function App() {
                           ))}
                         </select>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {dashboardTabs.find((tab) => tab.id === activeTab)?.description}
-                      </p>
+
+                      <div className="flex items-center gap-2 sm:shrink-0">
+                        {isSampleData ? <Badge variant="accent">Sample data</Badge> : null}
+                        <Button variant="ghost" size="sm" onClick={resetAnalysis}>
+                          {isSampleData ? 'Exit sample' : 'Load different files'}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isSampleData ? <Badge variant="accent">Sample data</Badge> : null}
-                      <Button variant="ghost" size="sm" onClick={resetAnalysis}>
-                        {isSampleData ? 'Exit sample' : 'Load different files'}
-                      </Button>
-                    </div>
+
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {dashboardTabs.find((tab) => tab.id === activeTab)?.description}
+                    </p>
                   </div>
 
                   <Dashboard
@@ -224,7 +227,7 @@ export default function App() {
         ) : null}
       </main>
 
-      <footer className="border-t border-border py-4 md:py-6 text-center text-xs text-muted-foreground">
+      <footer className="border-t border-border mt-auto py-5 md:py-6 text-center text-xs text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} Rowan Smith. All rights reserved.</p>
       </footer>
     </div>

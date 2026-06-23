@@ -76,7 +76,7 @@ export function FileUpload({
           <p className="text-xs text-muted-foreground mb-4">
             Don&apos;t have your export yet?{' '}
             <button type="button" className="text-accent underline underline-offset-2 hover:no-underline bg-transparent border-0 cursor-pointer" onClick={onOpenRequestData}>
-              Get your data
+              See how to request it
             </button>
           </p>
         ) : null}

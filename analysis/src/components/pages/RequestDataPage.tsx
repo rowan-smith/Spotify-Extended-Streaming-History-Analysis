@@ -4,7 +4,7 @@ import {
   SPOTIFY_PRIVACY_LABEL,
   SPOTIFY_PRIVACY_URL,
 } from '../../content/siteContent';
-import { Button } from '@/components/ui/button';
+import { ContentPageLayout } from './ContentPageLayout';
 
 const REQUEST_DATA_IMAGE_BASE = './images/request-data/';
 
@@ -30,24 +30,15 @@ interface RequestDataPageProps {
 
 export function RequestDataPage({ onBack, backLabel = 'Back to home' }: RequestDataPageProps) {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <div className="mb-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          {backLabel}
-        </Button>
-      </div>
-
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Request your extended streaming history</h1>
-        <p className="text-sm text-muted-foreground">
-          Spotify provides Extended Streaming History as part of a privacy data export. Follow
-          these steps, then return here to analyze the JSON files locally.
-        </p>
-      </header>
-
+    <ContentPageLayout
+      onBack={onBack}
+      backLabel={backLabel}
+      title="Request your extended streaming history"
+      intro="Spotify provides Extended Streaming History as part of a privacy data export. Follow these steps, then return here to analyze the JSON files locally."
+    >
       <ol className="relative">
         {REQUEST_DATA_STEPS.map((step, index) => (
-          <li key={step.title} className="relative pl-10 pb-8 last:pb-0">
+          <li key={step.title} className="relative pl-10 pb-6 last:pb-0">
             {index < REQUEST_DATA_STEPS.length - 1 ? (
               <span className="absolute left-[15px] top-0 bottom-0 w-px bg-border" aria-hidden="true" />
             ) : null}
@@ -55,8 +46,8 @@ export function RequestDataPage({ onBack, backLabel = 'Back to home' }: RequestD
               {index + 1}
             </span>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold mb-1">{step.title}</h2>
-              <p className="text-xs text-muted-foreground leading-relaxed">{renderStepBody(step.body)}</p>
+              <h2 className="text-sm font-semibold mb-1.5">{step.title}</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">{renderStepBody(step.body)}</p>
               {'image' in step && step.image ? (
                 <figure
                   className={`mt-3 ${
@@ -64,14 +55,14 @@ export function RequestDataPage({ onBack, backLabel = 'Back to home' }: RequestD
                       ? 'max-w-sm'
                       : 'imageVariant' in step && step.imageVariant === 'inline'
                         ? 'inline-block max-w-[200px] ml-2 align-top'
-                        : ''
+                        : 'max-w-xl'
                   }`}
                 >
                   <img
                     src={`${REQUEST_DATA_IMAGE_BASE}${step.image}`}
                     alt={'imageAlt' in step ? step.imageAlt : ''}
                     loading="lazy"
-                    className="rounded-lg border border-border w-full"
+                    className="rounded-lg border border-border w-full bg-muted/30"
                   />
                 </figure>
               ) : null}
@@ -79,6 +70,6 @@ export function RequestDataPage({ onBack, backLabel = 'Back to home' }: RequestD
           </li>
         ))}
       </ol>
-    </div>
+    </ContentPageLayout>
   );
 }

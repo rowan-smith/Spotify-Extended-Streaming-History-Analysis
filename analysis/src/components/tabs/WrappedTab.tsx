@@ -41,9 +41,9 @@ export function WrappedTab({ songs, spanLabel }: WrappedTabProps) {
           No songs match your Wrapped filters.
         </p>
       ) : (
-        <div className="rounded-xl border border-border overflow-auto">
+        <div className="rounded-xl border border-border overflow-auto max-h-[70vh]">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow>
                 <TableHead className="w-[3.2rem]">#</TableHead>
                 <TableHead>Track</TableHead>

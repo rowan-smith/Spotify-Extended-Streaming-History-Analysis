@@ -321,7 +321,7 @@ export function Dashboard({
       <div className="grid gap-6">
         <section>
           <h3 className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">At a glance</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-0">
             <StatCard
               variant="hero"
               label="Total plays"
@@ -347,7 +347,7 @@ export function Dashboard({
               info={METRIC_INFO.uniqueArtists}
             />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-2 min-w-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3 min-w-0">
             <StatCard
               variant="compact"
               label="History span"

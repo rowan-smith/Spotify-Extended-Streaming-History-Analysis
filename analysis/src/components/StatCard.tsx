@@ -28,14 +28,19 @@ export function StatCard({ label, value, hint, info, variant = 'default' }: Stat
 
   return (
     <Card>
-      <CardHeader className={cn('pb-2', variant === 'hero' ? 'p-5 pb-2' : 'p-4 pb-2')}>
-        <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+      <CardHeader className={cn('p-4 pb-1', variant === 'hero' && 'sm:p-5 sm:pb-2')}>
+        <CardTitle className="text-xs sm:text-sm font-normal text-muted-foreground flex items-center gap-1.5">
           {label}
           {info ? <InfoTooltip text={info} label={label} /> : null}
         </CardTitle>
       </CardHeader>
-      <CardContent className={cn('pt-0', variant === 'hero' ? 'px-5 pb-5' : 'px-4 pb-4')}>
-        <p className={cn('font-bold leading-tight break-words', variant === 'hero' ? 'text-2xl' : 'text-xl')}>
+      <CardContent className={cn('px-4 pb-4 pt-0', variant === 'hero' && 'sm:px-5 sm:pb-5')}>
+        <p
+          className={cn(
+            'font-bold leading-tight break-words',
+            variant === 'hero' ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl',
+          )}
+        >
           {value}
         </p>
         {hint ? <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{hint}</p> : null}

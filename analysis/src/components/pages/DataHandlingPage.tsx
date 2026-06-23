@@ -1,6 +1,6 @@
 import { DATA_HANDLING_SECTIONS } from '../../content/siteContent';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ContentPageLayout } from './ContentPageLayout';
 
 interface DataHandlingPageProps {
   onBack: () => void;
@@ -9,28 +9,22 @@ interface DataHandlingPageProps {
 
 export function DataHandlingPage({ onBack, backLabel = 'Back to home' }: DataHandlingPageProps) {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <div className="mb-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          {backLabel}
-        </Button>
-      </div>
-
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Data handling</h1>
-        <p className="text-sm text-muted-foreground">How this site treats your Spotify export files and what leaves your device.</p>
-      </header>
-
-      <dl className="space-y-4">
+    <ContentPageLayout
+      onBack={onBack}
+      backLabel={backLabel}
+      title="Data handling"
+      intro="How this site treats your Spotify export files and what leaves your device."
+    >
+      <dl className="space-y-3">
         {DATA_HANDLING_SECTIONS.map((section) => (
           <Card key={section.title}>
             <CardContent className="p-4">
-              <dt className="text-sm font-semibold mb-1">{section.title}</dt>
-              <dd className="text-xs text-muted-foreground leading-relaxed">{section.body}</dd>
+              <dt className="text-sm font-semibold mb-1.5">{section.title}</dt>
+              <dd className="text-sm text-muted-foreground leading-relaxed">{section.body}</dd>
             </CardContent>
           </Card>
         ))}
       </dl>
-    </div>
+    </ContentPageLayout>
   );
 }

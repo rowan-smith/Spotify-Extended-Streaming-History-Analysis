@@ -1,4 +1,4 @@
-import type { AlbumStats, ArtistStats, SongMetrics, ArtistMetrics, AlbumMetrics, StreamRecord } from '../types';
+import type { AlbumStats, ArtistStats, SongMetrics, ArtistMetrics, AlbumMetrics, StreamRecord, SongStats } from '../types';
 import { songKey } from './aggregation';
 import {
   computeBestDiscoveryDay,

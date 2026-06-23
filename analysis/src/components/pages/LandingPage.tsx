@@ -19,16 +19,16 @@ export function LandingPage({
   error,
 }: LandingPageProps) {
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center px-4 py-12 gap-8">
-      <section className="text-center max-w-lg">
-        <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">Local-first Spotify analytics</p>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-          Explore your Spotify
+    <div className="flex flex-col items-center px-4 py-10 sm:py-14 gap-8 sm:gap-10">
+      <section className="text-center max-w-2xl w-full">
+        <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-4">
+          Local-first Spotify analytics
+        </p>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+          Explore your Spotify{' '}
+          <span className="text-accent">listening history</span>
         </h1>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-accent">
-          listening history
-        </h1>
-        <div className="mt-4">
+        <div className="mt-5 max-w-lg mx-auto">
           <PrivacyBanner onOpenDataHandling={onOpenDataHandling} />
         </div>
       </section>

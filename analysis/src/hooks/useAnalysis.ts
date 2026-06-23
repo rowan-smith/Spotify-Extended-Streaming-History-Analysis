@@ -5,7 +5,7 @@ import {
   getFilterContext,
   getWrappedYear,
 } from '../analysis/filters';
-import { DASHBOARD_TABS } from '../content/dashboardTabs';
+import { getVisibleDashboardTabs } from '../content/dashboardTabs';
 import type { AnalysisFilters, AnalysisResult, AppView, RankingViewMode, TabId } from '../types';
 import {
   AnalysisSupersededError,
@@ -62,6 +62,16 @@ export function useAnalysis() {
   const activeAnalysis = isWrappedMode ? wrappedAnalysis : analysis;
   const activeFilterContext = isWrappedMode ? wrappedFilterContext : filterContext;
   const activeFilteredPlays = isWrappedMode ? wrappedFilteredPlays : standardFilteredPlays;
+  const dashboardTabs = useMemo(
+    () => getVisibleDashboardTabs(filters, isWrappedMode),
+    [filters, isWrappedMode],
+  );
+
+  useEffect(() => {
+    if (!dashboardTabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab('summary');
+    }
+  }, [dashboardTabs, activeTab]);
 
   const analyzeRequest = useMemo(
     () => ({
@@ -272,7 +282,7 @@ export function useAnalysis() {
     isSampleData,
     filtersPending,
     activeFilterContext,
-    dashboardTabs: DASHBOARD_TABS,
+    dashboardTabs,
     activeFilteredPlays,
     activeAnalysis,
     handleFiltersChange: setFilters,

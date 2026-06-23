@@ -58,12 +58,12 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
             onValueChange={(value) => {
               if (value.length > 0) setSkipView(value[0] as SkipView);
             }}
-            className="justify-start"
+            className="w-full sm:w-auto justify-start"
           >
-            <ToggleGroupItem value="most" className="text-xs px-3">
+            <ToggleGroupItem value="most" className="flex-1 sm:flex-initial text-xs px-3 h-10 sm:h-9">
               Most skipped
             </ToggleGroupItem>
-            <ToggleGroupItem value="least" className="text-xs px-3">
+            <ToggleGroupItem value="least" className="flex-1 sm:flex-initial text-xs px-3 h-10 sm:h-9">
               Least skipped
             </ToggleGroupItem>
           </ToggleGroup>
@@ -75,21 +75,6 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
               ? 'No skipped plays in this range.'
               : `No tracks with at least ${MIN_PLAYS_FOR_LEAST_SKIPPED} plays and at least one completed listen.`}
           </p>
-        ) : compact ? (
-          <ChartCard
-            title={skipView === 'most' ? `Top ${topNLabel} most skipped` : `Top ${topNLabel} least skipped`}
-          >
-            <MobileRankedList
-              metricLabel="Skips"
-              items={skipSongs.map((song) => ({
-                primary: song.trackName,
-                secondary: song.artistName,
-                value: song.skipCount,
-                valueText: song.skipCount.toLocaleString(),
-                meta: `${song.totalPlays.toLocaleString()} plays · ${formatSkipRate(song.skipRate)}`,
-              }))}
-            />
-          </ChartCard>
         ) : (
           <RankedBarChart
             title={skipTitle}
@@ -143,6 +128,7 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
           <>
             <PlotlyCard
               title={`Top ${topNLabel} discovery days`}
+              compact={compact}
               data={[
                 verticalBarChart(
                   analysis.discoveryDays.map((day) => day.day),

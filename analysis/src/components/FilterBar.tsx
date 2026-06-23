@@ -138,6 +138,18 @@ export function FilterBar({
     onChange(applyQuickYearRange(filters, year, year));
   }
 
+  function setMediaFilter(
+    key: 'includeMusic' | 'includePodcasts' | 'includeAudiobooks',
+    checked: boolean,
+  ) {
+    const next = { ...filters, [key]: checked };
+    const anyEnabled = next.includeMusic || next.includePodcasts || next.includeAudiobooks;
+    if (!anyEnabled) {
+      return;
+    }
+    update(next);
+  }
+
   return (
     <section className="mb-4" aria-label="Analysis filters">
       <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-3 mb-4">
@@ -153,9 +165,9 @@ export function FilterBar({
         </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-muted/50 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <RankingViewTabs active={viewMode} onChange={onViewModeChange} />
+      <div className="rounded-xl border border-border bg-muted/50 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <RankingViewTabs active={viewMode} onChange={onViewModeChange} className="w-full sm:w-auto" />
           {isWrappedMode ? (
             <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
               <span className="font-medium text-foreground">Wrapped year</span>
@@ -191,11 +203,12 @@ export function FilterBar({
           <>
             <h3 className="text-sm font-medium text-foreground mb-3">Filters</h3>
 
-            <div className="sm:flex sm:flex-row sm:items-center sm:justify-between flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
-                  <span className="font-medium text-foreground">Year</span>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 min-[480px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-3">
+                <label className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 text-sm text-muted-foreground min-w-0">
+                  <span className="font-medium text-foreground shrink-0">Year</span>
                   <Select
+                    className="w-full sm:w-auto"
                     value={yearValue}
                     onChange={(event) => setQuickYear(event.target.value)}
                     aria-label="Year selection"
@@ -212,8 +225,8 @@ export function FilterBar({
                   </Select>
                 </label>
 
-                <span className="hidden sm:block w-px h-6 bg-border shrink-0" aria-hidden="true" />
                 <MetricTabs
+                  className="w-full min-[480px]:w-auto sm:w-auto"
                   active={filters.rankingMetric}
                   onChange={(value: RankingMetric) =>
                     update({ ...filters, rankingMetric: value })
@@ -223,7 +236,7 @@ export function FilterBar({
                 />
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-3 sm:border-0 sm:pt-0 sm:justify-end">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -251,11 +264,11 @@ export function FilterBar({
               </div>
             </div>
 
-        {advancedOpen ? (
-          <>
-            <hr className="my-3 border-border" />
-            <h3 className="text-sm font-medium text-foreground mb-3">Advanced filters</h3>
-            <div className="space-y-3">
+            {advancedOpen ? (
+              <>
+                <hr className="my-3 border-border" />
+                <h3 className="text-sm font-medium text-foreground mb-3">Advanced filters</h3>
+                <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">From year</span>
@@ -380,71 +393,88 @@ export function FilterBar({
                 </label>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <Checkbox
-                    checked={filters.hideSkipped}
-                    onChange={(event) => update({ ...filters, hideSkipped: event.target.checked })}
-                  />
-                  <span className="flex items-center gap-1">
-                    Hide skipped plays
-                    <InfoTooltip text={FILTER_OPTION_INFO.hideSkipped} />
-                  </span>
-                </label>
+              <div className="space-y-3 rounded-lg border border-border/70 bg-background/40 p-3">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Media types</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                      <Checkbox
+                        checked={filters.includeMusic}
+                        onChange={(event) => setMediaFilter('includeMusic', event.target.checked)}
+                      />
+                      <span className="flex items-center gap-1">
+                        Music
+                        <InfoTooltip text={FILTER_OPTION_INFO.includeMusic} />
+                      </span>
+                    </label>
 
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <Checkbox
-                    checked={filters.includeMusic}
-                    onChange={(event) => update({ ...filters, includeMusic: event.target.checked })}
-                  />
-                  <span className="flex items-center gap-1">
-                    Music
-                    <InfoTooltip text={FILTER_OPTION_INFO.includeMusic} />
-                  </span>
-                </label>
+                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                      <Checkbox
+                        checked={filters.includePodcasts}
+                        onChange={(event) =>
+                          setMediaFilter('includePodcasts', event.target.checked)
+                        }
+                      />
+                      <span className="flex items-center gap-1">
+                        Podcasts
+                        <InfoTooltip text={FILTER_OPTION_INFO.includePodcasts} />
+                      </span>
+                    </label>
 
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <Checkbox
-                    checked={filters.includePodcasts}
-                    onChange={(event) =>
-                      update({ ...filters, includePodcasts: event.target.checked })
-                    }
-                  />
-                  <span className="flex items-center gap-1">
-                    Podcasts
-                    <InfoTooltip text={FILTER_OPTION_INFO.includePodcasts} />
-                  </span>
-                </label>
+                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                      <Checkbox
+                        checked={filters.includeAudiobooks}
+                        onChange={(event) =>
+                          setMediaFilter('includeAudiobooks', event.target.checked)
+                        }
+                      />
+                      <span className="flex items-center gap-1">
+                        Audiobooks
+                        <InfoTooltip text={FILTER_OPTION_INFO.includeAudiobooks} />
+                      </span>
+                    </label>
+                  </div>
+                  {!filters.includeMusic ? (
+                    <p className="text-[0.7rem] text-muted-foreground mt-2 leading-relaxed">
+                      Albums and Discover tabs are hidden when music is excluded.
+                    </p>
+                  ) : null}
+                </div>
 
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <Checkbox
-                    checked={filters.includeAudiobooks}
-                    onChange={(event) =>
-                      update({ ...filters, includeAudiobooks: event.target.checked })
-                    }
-                  />
-                  <span className="flex items-center gap-1">
-                    Audiobooks
-                    <InfoTooltip text={FILTER_OPTION_INFO.includeAudiobooks} />
-                  </span>
-                </label>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Playback</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                      <Checkbox
+                        checked={filters.hideSkipped}
+                        onChange={(event) =>
+                          update({ ...filters, hideSkipped: event.target.checked })
+                        }
+                      />
+                      <span className="flex items-center gap-1">
+                        Hide skipped plays
+                        <InfoTooltip text={FILTER_OPTION_INFO.hideSkipped} />
+                      </span>
+                    </label>
 
-              <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                <Checkbox
-                  checked={filters.excludeIncognito}
-                  onChange={(event) =>
-                    update({ ...filters, excludeIncognito: event.target.checked })
-                  }
-                />
-                <span className="flex items-center gap-1">
-                  Exclude private sessions
-                  <InfoTooltip text={FILTER_OPTION_INFO.excludeIncognito} />
-                </span>
-              </label>
-            </div>
-            </div>
-          </>
-        ) : null}
+                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                      <Checkbox
+                        checked={filters.excludeIncognito}
+                        onChange={(event) =>
+                          update({ ...filters, excludeIncognito: event.target.checked })
+                        }
+                      />
+                      <span className="flex items-center gap-1">
+                        Exclude private sessions
+                        <InfoTooltip text={FILTER_OPTION_INFO.excludeIncognito} />
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+                </div>
+              </>
+            ) : null}
           </>
         )}
       </div>

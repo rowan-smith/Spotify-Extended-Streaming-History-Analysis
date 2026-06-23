@@ -14,6 +14,7 @@ interface PatternsSectionProps {
   rankingMetric: RankingMetric;
   theme: Theme;
   showYearlyTopBreakdown: boolean;
+  compact?: boolean;
 }
 
 export function PatternsSection({
@@ -21,6 +22,7 @@ export function PatternsSection({
   rankingMetric,
   theme,
   showYearlyTopBreakdown,
+  compact = false,
 }: PatternsSectionProps) {
   const monthlyHistoryPoints = useMemo<TimelinePoint[]>(
     () =>
@@ -55,6 +57,7 @@ export function PatternsSection({
         ]}
         layout={{ xaxis: { title: { text: 'Month' } }, yaxis: { title: { text: monthYAxis } } }}
         theme={theme}
+        compact={compact}
         height={360}
         points={monthPoints}
         pointsValueLabel={monthValueLabel}
@@ -75,6 +78,7 @@ export function PatternsSection({
             ]}
             layout={{ xaxis: { title: { text: 'Day of month' } }, yaxis: { title: { text: 'Plays' } } }}
             theme={theme}
+            compact={compact}
             height={360}
             points={analysis.playsByDayOfMonth}
             pointsValueLabel="Plays"
@@ -92,6 +96,7 @@ export function PatternsSection({
             ]}
             layout={{ xaxis: { title: { text: 'Hour (local)' }, tickangle: -45 }, yaxis: { title: { text: 'Plays' } } }}
             theme={theme}
+            compact={compact}
             height={360}
             points={analysis.playsByHour}
             pointsValueLabel="Plays"
@@ -110,6 +115,7 @@ export function PatternsSection({
             ]}
             layout={{ xaxis: { title: { text: 'Weekday' } }, yaxis: { title: { text: 'Plays' } } }}
             theme={theme}
+            compact={compact}
             height={360}
             points={analysis.playsByDayOfWeek}
             pointsValueLabel="Plays"
@@ -128,6 +134,7 @@ export function PatternsSection({
             legend: { orientation: 'h', y: 1.15 },
           }}
           theme={theme}
+          compact={compact}
           height={420}
           points={monthlyHistoryPoints}
           pointsValueLabel="Hours"

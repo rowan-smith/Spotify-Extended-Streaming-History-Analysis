@@ -21,6 +21,7 @@ interface PlotlyCardProps {
   points?: TimelinePoint[];
   pointsValueLabel?: string;
   listView?: ReactNode;
+  compact?: boolean;
   viewControls?: {
     viewMode: ViewMode;
     onViewModeChange: (mode: ViewMode) => void;
@@ -43,9 +44,10 @@ export function PlotlyCard({
   points,
   pointsValueLabel = 'Value',
   listView,
+  compact = false,
   viewControls,
 }: PlotlyCardProps) {
-  const internalView = useVisualizationView(false);
+  const internalView = useVisualizationView(compact);
   const viewMode = viewControls?.viewMode ?? internalView.viewMode;
   const setViewMode = viewControls?.onViewModeChange ?? internalView.setViewMode;
   const chartZoomed = viewControls?.chartZoomed ?? internalView.chartZoomed;

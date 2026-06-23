@@ -438,6 +438,7 @@ function DashboardContent({
           rankingMetric={rankingMetric}
           theme={theme}
           showYearlyTopBreakdown={showYearlyTopBreakdown}
+          compact={isCompact}
         />
       </div>
     );
@@ -469,6 +470,7 @@ function DashboardContent({
         {showMultiYearCharts ? (
           <PlotlyCard
             title={yearTitle}
+            compact={isCompact}
             subtitle={
               rankingMetric === 'plays'
                 ? 'Hover to see the top song each year.'
@@ -497,6 +499,7 @@ function DashboardContent({
 
         <PlotlyCard
           title={dailyTitle}
+          compact={isCompact}
           subtitle={
             rankingMetric === 'plays'
               ? 'Most-listened track per day on hover. Dates use your local timezone.'
@@ -520,6 +523,7 @@ function DashboardContent({
         {showYearlyTopBreakdown && rankingMetric === 'time' ? (
           <PlotlyCard
             title="Playtime by month across your history"
+            compact={isCompact}
             data={[
               lineChart(
                 analysis.playtimeByYearMonth.map((point) => point.label),

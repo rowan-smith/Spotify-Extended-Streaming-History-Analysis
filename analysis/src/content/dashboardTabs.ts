@@ -1,10 +1,12 @@
-import type { TabId } from '../types';
+import type { AnalysisFilters, TabId } from '../types';
 
 export interface DashboardTab {
   id: TabId;
   label: string;
   description: string;
 }
+
+const HIDDEN_WHEN_NO_MUSIC: TabId[] = ['albums', 'discover'];
 
 export const DASHBOARD_TABS: DashboardTab[] = [
   {
@@ -48,3 +50,48 @@ export const DASHBOARD_TABS: DashboardTab[] = [
     description: 'Search and sort every song and artist in your filter range.',
   },
 ];
+
+function includesNonMusicContent(filters: AnalysisFilters): boolean {
+  return filters.includePodcasts || filters.includeAudiobooks;
+}
+
+export function getVisibleDashboardTabs(
+  filters: AnalysisFilters,
+  isWrappedMode: boolean,
+): DashboardTab[] {
+  const visible = DASHBOARD_TABS.filter((tab) => {
+    if (isWrappedMode || filters.includeMusic) {
+      return true;
+    }
+    return !HIDDEN_WHEN_NO_MUSIC.includes(tab.id);
+  });
+
+  if (isWrappedMode || !includesNonMusicContent(filters)) {
+    return visible;
+  }
+
+  return visible.map((tab) => {
+    if (tab.id === 'songs') {
+      return {
+        ...tab,
+        label: 'Tracks',
+        description:
+          'Metrics and top items by plays or playtime — songs, podcast episodes, and audiobooks.',
+      };
+    }
+    if (tab.id === 'artists') {
+      return {
+        ...tab,
+        description:
+          'Artists, podcast shows, and other creators ranked by plays or playtime.',
+      };
+    }
+    if (tab.id === 'browse') {
+      return {
+        ...tab,
+        description: 'Search and sort every track and creator in your filter range.',
+      };
+    }
+    return tab;
+  });
+}

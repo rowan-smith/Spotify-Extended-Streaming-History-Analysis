@@ -26,6 +26,7 @@ export function ViewModeToggle({
 
   return (
     <ToggleGroup
+      className="shrink-0"
       value={[value]}
       onValueChange={(next) => {
         if (next.length > 0) onChange(next[0] as ViewMode);
@@ -37,7 +38,7 @@ export function ViewModeToggle({
           key={optionValue}
           value={optionValue}
           aria-label={label}
-          className="p-2 sm:p-1.5 rounded-md"
+          className="h-9 w-9 sm:h-8 sm:w-8 p-0 rounded-md"
         >
           <Icon className="size-4" aria-hidden="true" />
         </ToggleGroupItem>

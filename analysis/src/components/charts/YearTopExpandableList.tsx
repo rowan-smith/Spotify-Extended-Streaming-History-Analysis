@@ -74,27 +74,26 @@ export function YearTopExpandableList({
             return (
               <article key={key} className="py-3 first:pt-0 last:pb-0" role="listitem">
                 <div className="flex items-start gap-2">
-                  {canExpand ? (
-                    <button
-                      type="button"
-                      className="mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors bg-transparent border-0 cursor-pointer shrink-0"
-                      aria-expanded={expanded}
-                      aria-label={`${expanded ? 'Hide' : 'Show'} ${breakdownLabel.toLowerCase()} for ${entry.name}`}
-                      onClick={() => toggleExpanded(key)}
-                    >
-                      {expanded ? (
-                        <ChevronDown className="w-4 h-4" aria-hidden="true" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" aria-hidden="true" />
-                      )}
-                    </button>
-                  ) : (
-                    <span className="w-7 shrink-0" aria-hidden="true" />
-                  )}
-
-                  <span className="flex-shrink-0 inline-grid place-items-center min-w-10 h-6 px-1.5 rounded-full bg-accent/20 text-accent text-xs font-bold tabular-nums">
-                    {entry.year}
-                  </span>
+                  <div className="flex flex-col items-center shrink-0 gap-0.5">
+                    <span className="inline-grid place-items-center min-w-10 h-6 px-1.5 rounded-full bg-accent/20 text-accent text-xs font-bold tabular-nums">
+                      {entry.year}
+                    </span>
+                    {canExpand ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors bg-transparent border-0 cursor-pointer"
+                        aria-expanded={expanded}
+                        aria-label={`${expanded ? 'Hide' : 'Show'} ${breakdownLabel.toLowerCase()} for ${entry.name}`}
+                        onClick={() => toggleExpanded(key)}
+                      >
+                        {expanded ? (
+                          <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
@@ -124,20 +123,20 @@ export function YearTopExpandableList({
                         ? formatHours(entry.hours)
                         : `${entry.plays.toLocaleString()} plays`}
                     </p>
+
+                    {expanded && canExpand ? (
+                      <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">{breakdownLabel}</p>
+                        <MobileRankedList
+                          compact
+                          metricLabel={metricLabel}
+                          rankingMetric={rankingMetric}
+                          items={songs.map(songToListItem)}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-
-                {expanded && canExpand ? (
-                  <div className="mt-3 ml-9 rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">{breakdownLabel}</p>
-                    <MobileRankedList
-                      compact
-                      metricLabel={metricLabel}
-                      rankingMetric={rankingMetric}
-                      items={songs.map(songToListItem)}
-                    />
-                  </div>
-                ) : null}
               </article>
             );
         })

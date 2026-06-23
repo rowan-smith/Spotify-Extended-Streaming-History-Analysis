@@ -53,7 +53,7 @@ export function useAnalysis() {
   );
   const wrappedYearOptions = useMemo(() => {
     const years: number[] = [];
-    for (let year = bounds.yearMin; year <= bounds.yearMax; year += 1) {
+    for (let year = bounds.yearMax; year >= bounds.yearMin; year -= 1) {
       years.push(year);
     }
     return years;

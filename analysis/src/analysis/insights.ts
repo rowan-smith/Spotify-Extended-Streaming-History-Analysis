@@ -22,9 +22,6 @@ const WEEKDAY_PLURALS = [
 
 export const SUMMARY_INSIGHT_PRIORITY = [
   'Most repeated track',
-  'Busiest month in range',
-  'Favorite weekday',
-  'Longest listening streak',
   'Biggest binge day',
   'Best discovery day',
   'Seasonal favorite',

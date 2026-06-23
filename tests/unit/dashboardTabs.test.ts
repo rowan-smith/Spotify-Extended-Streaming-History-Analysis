@@ -29,7 +29,8 @@ describe('getVisibleDashboardTabs', () => {
     const tabs = getVisibleDashboardTabs(filters, false);
     expect(tabs.map((tab) => tab.id)).toEqual([
       'summary',
-      'podcasts',
+      'episodes',
+      'shows',
       'timeline',
       'habits',
     ]);
@@ -42,7 +43,8 @@ describe('getVisibleDashboardTabs', () => {
       includeAudiobooks: true,
     };
     const tabs = getVisibleDashboardTabs(filters, false);
-    expect(tabs.map((tab) => tab.id)).toContain('podcasts');
+    expect(tabs.map((tab) => tab.id)).toContain('episodes');
+    expect(tabs.map((tab) => tab.id)).toContain('shows');
     expect(tabs.map((tab) => tab.id)).toContain('audiobooks');
     expect(tabs.find((tab) => tab.id === 'songs')?.label).toBe('Songs');
   });
@@ -54,7 +56,8 @@ describe('getVisibleDashboardTabs', () => {
       includeAudiobooks: true,
     };
     const tabs = getVisibleDashboardTabs(filters, true);
-    expect(tabs.map((tab) => tab.id)).not.toContain('podcasts');
+    expect(tabs.map((tab) => tab.id)).not.toContain('episodes');
+    expect(tabs.map((tab) => tab.id)).not.toContain('shows');
     expect(tabs.map((tab) => tab.id)).not.toContain('audiobooks');
   });
 });

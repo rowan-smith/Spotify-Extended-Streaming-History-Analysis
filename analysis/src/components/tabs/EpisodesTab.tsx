@@ -9,7 +9,7 @@ import { YearDrilldownChart } from '../charts/YearDrilldownChart';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { AnalysisResult, RankingMetric } from '../../types';
 
-interface AudiobooksTabProps {
+interface EpisodesTabProps {
   analysis: AnalysisResult;
   topNLabel: number;
   years: number[];
@@ -20,7 +20,7 @@ interface AudiobooksTabProps {
   compact: boolean;
 }
 
-export function AudiobooksTab({
+export function EpisodesTab({
   analysis,
   topNLabel,
   years,
@@ -29,8 +29,8 @@ export function AudiobooksTab({
   rankingMetric,
   theme,
   compact,
-}: AudiobooksTabProps) {
-  const audiobooks =
+}: EpisodesTabProps) {
+  const episodes =
     rankingMetric === 'plays' ? analysis.topSongsByPlays : analysis.topSongsByTime;
   const {
     viewMode,
@@ -41,30 +41,30 @@ export function AudiobooksTab({
     resetChartView,
   } = useVisualizationView(compact);
 
-  const audiobookMetrics = useMemo(
-    () => buildSongMetricItems(analysis.songMetrics, 'audiobook'),
+  const episodeMetrics = useMemo(
+    () => buildSongMetricItems(analysis.songMetrics, 'episode'),
     [analysis.songMetrics],
   );
 
   return (
     <div className="grid gap-6 min-w-0">
       <MetricGrid
-        title="Audiobook metrics"
-        subtitle="Title-level patterns from your filtered audiobook history."
-        metrics={audiobookMetrics}
+        title="Episode metrics"
+        subtitle="Episode-level patterns from your filtered podcast history."
+        metrics={episodeMetrics}
       />
 
       <RankedBarChart
-        title={`Top ${topNLabel} audiobooks by ${rankingMetric === 'plays' ? 'plays' : 'playtime'}`}
+        title={`Top ${topNLabel} episodes by ${rankingMetric === 'plays' ? 'plays' : 'playtime'}`}
         subtitle={compact ? 'Ranked list optimised for smaller screens.' : undefined}
-        labels={audiobooks.map((audiobook) => audiobook.trackName)}
-        values={audiobooks.map((audiobook) =>
-          rankingMetric === 'plays' ? audiobook.numPlays : audiobook.totalHours,
+        labels={episodes.map((episode) => episode.trackName)}
+        values={episodes.map((episode) =>
+          rankingMetric === 'plays' ? episode.numPlays : episode.totalHours,
         )}
-        hover={audiobooks.map((audiobook) =>
+        hover={episodes.map((episode) =>
           rankingMetric === 'plays'
-            ? `${formatHours(audiobook.totalHours)} total`
-            : `${audiobook.numPlays.toLocaleString()} plays`,
+            ? `${episode.artistName}<br>${formatHours(episode.totalHours)} total`
+            : `${episode.artistName}<br>${episode.numPlays.toLocaleString()} plays`,
         )}
         xTitle={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
         theme={theme}
@@ -78,17 +78,18 @@ export function AudiobooksTab({
         listView={
           <MobileRankedList
             metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
-            items={audiobooks.map((audiobook) => ({
-              primary: audiobook.trackName,
-              value: rankingMetric === 'plays' ? audiobook.numPlays : audiobook.totalHours,
+            items={episodes.map((episode) => ({
+              primary: episode.trackName,
+              secondary: episode.artistName,
+              value: rankingMetric === 'plays' ? episode.numPlays : episode.totalHours,
               valueText:
                 rankingMetric === 'plays'
-                  ? audiobook.numPlays.toLocaleString()
-                  : formatHours(audiobook.totalHours),
+                  ? episode.numPlays.toLocaleString()
+                  : formatHours(episode.totalHours),
               meta:
                 rankingMetric === 'plays'
-                  ? `${formatHours(audiobook.totalHours)} total`
-                  : `${audiobook.numPlays.toLocaleString()} plays`,
+                  ? `${formatHours(episode.totalHours)} total`
+                  : `${episode.numPlays.toLocaleString()} plays`,
             }))}
           />
         }
@@ -96,7 +97,7 @@ export function AudiobooksTab({
 
       {showYearlyTopBreakdown ? (
         <YearDrilldownChart
-          title="Top audiobook by year"
+          title="Top episode by year"
           years={years}
           spanLabel={spanLabel}
           dataByPlays={analysis.topSongsByYear}

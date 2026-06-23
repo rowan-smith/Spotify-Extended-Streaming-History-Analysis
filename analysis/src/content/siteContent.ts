@@ -89,6 +89,20 @@ export const METRIC_INFO = {
   topAlbumByTime: 'The album you spent the most time listening to.',
   topAlbumShare: 'What share of all your plays went to your #1 album.',
   avgPlaysPerAlbum: 'Average number of plays per unique album.',
+  uniqueEpisodes: 'Different podcast episodes in your results. The same episode from the same show counts once.',
+  avgPlaysPerEpisode: 'Average number of plays per unique podcast episode.',
+  topEpisodeShare: 'What share of all your podcast plays went to your #1 most-played episode.',
+  mostRepeatedEpisode: 'The podcast episode you played the most times in this filtered range.',
+  uniqueShows: 'Different podcast shows in your results.',
+  avgPlaysPerShow: 'Average number of plays per unique podcast show.',
+  topShowShare: 'What share of all your podcast plays went to your #1 show.',
+  topShowByPlays: 'The podcast show with the most plays in this range.',
+  topShowByTime: 'The podcast show you spent the most time listening to.',
+  mostShowsInOneDay: 'The day you listened to the widest variety of podcast shows.',
+  uniqueAudiobooks: 'Different audiobook titles in your results.',
+  avgPlaysPerAudiobook: 'Average number of plays per unique audiobook title.',
+  topAudiobookShare: 'What share of all your audiobook plays went to your #1 most-played title.',
+  mostRepeatedAudiobook: 'The audiobook you played the most times in this filtered range.',
 } as const;
 
 export const PLAYS_VS_TIME_INFO = {

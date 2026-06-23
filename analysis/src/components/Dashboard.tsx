@@ -26,7 +26,8 @@ import { SongsTab } from './tabs/SongsTab';
 import { ArtistsTab } from './tabs/ArtistsTab';
 import { AlbumsTab } from './tabs/AlbumsTab';
 import { DiscoverTab } from './tabs/DiscoverTab';
-import { PodcastsTab } from './tabs/PodcastsTab';
+import { EpisodesTab } from './tabs/EpisodesTab';
+import { ShowsTab } from './tabs/ShowsTab';
 import { AudiobooksTab } from './tabs/AudiobooksTab';
 import { FancyRankedListPanel } from './charts/FancyRankedListPanel';
 import { songsForArtist } from '../analysis/rankedListBreakdown';
@@ -308,6 +309,19 @@ function DashboardContent({
     theme,
     compact: isCompact,
   };
+  const podcastTabProps = {
+    analysis: podcastAnalysis,
+    topNLabel,
+    years: podcastAnalysis.availableYears,
+    showYearlyTopBreakdown: shouldShowYearlyTopBreakdown(
+      filterContext,
+      podcastAnalysis.availableYears,
+    ),
+    spanLabel: filterContext.spanLabel,
+    rankingMetric,
+    theme,
+    compact: isCompact,
+  };
 
   if (activeTab === 'summary') {
     return (
@@ -443,19 +457,12 @@ function DashboardContent({
     return <AlbumsTab analysis={musicAnalysis} {...rankingTabProps} />;
   }
 
-  if (activeTab === 'podcasts') {
-    return (
-      <PodcastsTab
-        analysis={podcastAnalysis}
-        topNLabel={topNLabel}
-        years={podcastAnalysis.availableYears}
-        showYearlyTopBreakdown={shouldShowYearlyTopBreakdown(filterContext, podcastAnalysis.availableYears)}
-        spanLabel={filterContext.spanLabel}
-        rankingMetric={rankingMetric}
-        theme={theme}
-        compact={isCompact}
-      />
-    );
+  if (activeTab === 'episodes') {
+    return <EpisodesTab {...podcastTabProps} />;
+  }
+
+  if (activeTab === 'shows') {
+    return <ShowsTab {...podcastTabProps} />;
   }
 
   if (activeTab === 'audiobooks') {

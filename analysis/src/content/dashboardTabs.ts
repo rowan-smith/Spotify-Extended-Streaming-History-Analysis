@@ -7,7 +7,7 @@ export interface DashboardTab {
 }
 
 const MUSIC_ONLY_TABS: TabId[] = ['songs', 'artists', 'albums', 'discover', 'browse'];
-const PODCAST_ONLY_TABS: TabId[] = ['podcasts'];
+const PODCAST_ONLY_TABS: TabId[] = ['episodes', 'shows'];
 const AUDIOBOOK_ONLY_TABS: TabId[] = ['audiobooks'];
 
 export const DASHBOARD_TABS: DashboardTab[] = [
@@ -32,9 +32,14 @@ export const DASHBOARD_TABS: DashboardTab[] = [
     description: 'Album metrics and top albums by plays or playtime; Wrapped mode uses the global toggle.',
   },
   {
-    id: 'podcasts',
-    label: 'Podcasts',
-    description: 'Top podcast episodes and shows by plays or playtime.',
+    id: 'episodes',
+    label: 'Episodes',
+    description: 'Episode metrics and top podcast episodes by plays or playtime.',
+  },
+  {
+    id: 'shows',
+    label: 'Shows',
+    description: 'Show metrics and top podcast shows by plays or playtime.',
   },
   {
     id: 'audiobooks',

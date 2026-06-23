@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { PLAYS_VS_TIME_INFO } from '../../content/siteContent';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
-import { ChartCard } from '../charts/ChartCard';
 import { MetricTabs } from '../charts/MetricTabs';
 import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
+import { DataTable } from '../DataTable';
+import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { AnalysisResult } from '../../types';
 
 interface SongsTabProps {
@@ -28,6 +29,16 @@ export function SongsTab({
 }: SongsTabProps) {
   const [metric, setMetric] = useState<'plays' | 'time'>('plays');
   const songs = metric === 'plays' ? analysis.topSongsByPlays : analysis.topSongsByTime;
+  const {
+    viewMode,
+    setViewMode,
+    chartZoomed,
+    setChartZoomed,
+    plotRef,
+    resetChartView,
+  } = useVisualizationView(compact);
+
+  const title = `Top ${topNLabel} songs by ${metric === 'plays' ? 'plays' : 'playtime'}`;
 
   return (
     <div className="grid gap-6 min-w-0">
@@ -41,11 +52,44 @@ export function SongsTab({
         {metric === 'plays' ? PLAYS_VS_TIME_INFO.plays : PLAYS_VS_TIME_INFO.time}
       </p>
 
-      {compact ? (
-        <ChartCard
-          title={`Top ${topNLabel} songs by ${metric === 'plays' ? 'plays' : 'playtime'}`}
-          subtitle="Ranked list optimised for smaller screens."
-        >
+      <RankedBarChart
+        title={title}
+        subtitle={compact ? 'Ranked list optimised for smaller screens.' : undefined}
+        labels={songs.map((song) => song.trackName)}
+        values={songs.map((song) => (metric === 'plays' ? song.numPlays : song.totalHours))}
+        hover={songs.map((song) =>
+          metric === 'plays'
+            ? `${song.artistName}<br>${formatHours(song.totalHours)} total`
+            : `${song.artistName}<br>${song.numPlays.toLocaleString()} plays`,
+        )}
+        xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
+        theme={theme}
+        compact={compact}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        chartZoomed={chartZoomed}
+        onChartReset={resetChartView}
+        plotRef={plotRef}
+        onZoomChange={setChartZoomed}
+        tableView={
+          <DataTable
+            rows={songs}
+            rowKey={(row) => `${row.trackName}-${row.artistName}`}
+            columns={[
+              { key: 'trackName', label: 'Track' },
+              { key: 'artistName', label: 'Artist' },
+              { key: 'numPlays', label: 'Plays', align: 'right' },
+              {
+                key: 'totalHours',
+                label: 'Playtime',
+                align: 'right',
+                render: (row) => formatHours(row.totalHours),
+              },
+            ]}
+            searchPlaceholder="Search songs or artists…"
+          />
+        }
+        gridView={
           <MobileRankedList
             metricLabel={metric === 'plays' ? 'Plays' : 'Hours'}
             items={songs.map((song) => ({
@@ -62,22 +106,8 @@ export function SongsTab({
                   : `${song.numPlays.toLocaleString()} plays`,
             }))}
           />
-        </ChartCard>
-      ) : (
-        <RankedBarChart
-          title={`Top ${topNLabel} songs by ${metric === 'plays' ? 'plays' : 'playtime'}`}
-          labels={songs.map((song) => song.trackName)}
-          values={songs.map((song) => (metric === 'plays' ? song.numPlays : song.totalHours))}
-          hover={songs.map((song) =>
-            metric === 'plays'
-              ? `${song.artistName}<br>${formatHours(song.totalHours)} total`
-              : `${song.artistName}<br>${song.numPlays.toLocaleString()} plays`,
-          )}
-          xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
-          theme={theme}
-          compact={compact}
-        />
-      )}
+        }
+      />
 
       {showMultiYearCharts ? (
         <YearDrilldownChart

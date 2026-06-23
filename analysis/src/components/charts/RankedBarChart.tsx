@@ -1,7 +1,10 @@
-import Plot from '../../charts/Plot';
-import { getPlotTheme, horizontalBarChart, rankedBarChartLayout } from '../../charts/plotHelpers';
-import type { Theme } from '../../hooks/useTheme';
-import { ChartCard } from './ChartCard';
+import type { ReactNode } from 'react';
+import { VisualizationShell } from './VisualizationShell';
+import { RankedBarPlot } from './RankedBarPlot';
+import type { Theme } from '@/hooks/useTheme';
+import type { PlotHandle } from '@/charts/Plot';
+import type { RefObject } from 'react';
+import type { ViewMode } from './viewMode';
 
 interface RankedBarChartProps {
   title: string;
@@ -12,6 +15,14 @@ interface RankedBarChartProps {
   xTitle: string;
   theme: Theme;
   compact: boolean;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  chartZoomed: boolean;
+  onChartReset: () => void;
+  plotRef: RefObject<PlotHandle | null>;
+  onZoomChange: (zoomed: boolean) => void;
+  tableView: ReactNode;
+  gridView: ReactNode;
 }
 
 export function RankedBarChart({
@@ -23,40 +34,41 @@ export function RankedBarChart({
   xTitle,
   theme,
   compact,
+  viewMode,
+  onViewModeChange,
+  chartZoomed,
+  onChartReset,
+  plotRef,
+  onZoomChange,
+  tableView,
+  gridView,
 }: RankedBarChartProps) {
-  const plotTheme = getPlotTheme(theme === 'dark');
-  const chartLayout = rankedBarChartLayout(labels.length, compact);
-
   return (
-    <ChartCard
+    <VisualizationShell
       title={title}
       subtitle={
         subtitle ??
         (labels.length > 25 ? 'Scroll the page to see every ranked item.' : undefined)
       }
+      viewMode={viewMode}
+      onViewModeChange={onViewModeChange}
+      chartZoomed={chartZoomed}
+      onChartReset={onChartReset}
     >
-      <Plot
-        data={[
-          horizontalBarChart(labels, values, hover, xTitle, {
-            inlineLabels: chartLayout.inlineLabels,
-            accent: plotTheme.accent,
-          }),
-        ]}
-        layout={{
-          ...plotTheme.layout,
-          height: chartLayout.height,
-          bargap: labels.length > 30 ? 0.08 : 0.15,
-          xaxis: { title: { text: xTitle }, gridcolor: plotTheme.grid },
-          yaxis: {
-            automargin: !chartLayout.inlineLabels,
-            showticklabels: !chartLayout.inlineLabels,
-            tickfont: labels.length > 40 ? { size: 10 } : undefined,
-          },
-        }}
-        config={{ displayModeBar: false, responsive: true }}
-        style={{ width: '100%' }}
-        useResizeHandler
-      />
-    </ChartCard>
+      {viewMode === 'chart' ? (
+        <RankedBarPlot
+          ref={plotRef}
+          labels={labels}
+          values={values}
+          hover={hover}
+          xTitle={xTitle}
+          theme={theme}
+          compact={compact}
+          onZoomChange={onZoomChange}
+        />
+      ) : null}
+      {viewMode === 'table' ? tableView : null}
+      {viewMode === 'grid' ? gridView : null}
+    </VisualizationShell>
   );
 }

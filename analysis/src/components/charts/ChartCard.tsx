@@ -12,14 +12,20 @@ interface ChartCardProps {
   subtitle?: string;
   children: ReactNode;
   className?: string;
+  actions?: ReactNode;
 }
 
-export function ChartCard({ title, subtitle, children, className }: ChartCardProps) {
+export function ChartCard({ title, subtitle, children, className, actions }: ChartCardProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1.5">
+            <CardTitle>{title}</CardTitle>
+            {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
+          </div>
+          {actions ? <div className="pt-0.5">{actions}</div> : null}
+        </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>

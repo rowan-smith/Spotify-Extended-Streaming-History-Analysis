@@ -12,7 +12,6 @@ import type {
   FilterContext,
   TabId,
 } from '../types';
-import { ChartCard } from './charts/ChartCard';
 import { PlotlyCard } from './charts/PlotlyCard';
 import { StatCard } from './StatCard';
 import { InfoTooltip } from './InfoTooltip';
@@ -27,6 +26,12 @@ import { AlbumsTab } from './tabs/AlbumsTab';
 import { DataTable } from './DataTable';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FILTER_OPTION_INFO } from '../content/siteContent';
+import { VisualizationShell } from './charts/VisualizationShell';
+import { RankedBarPlot } from './charts/RankedBarPlot';
+import { MobileRankedList } from './charts/MobileRankedList';
+import { useVisualizationView } from '@/hooks/useVisualizationView';
+import type { SongStats, ArtistStats } from '../types';
+import type { StreamRecord } from '../types';
 
 interface DashboardProps {
   analysis: AnalysisResult;
@@ -35,6 +40,236 @@ interface DashboardProps {
   filters: AnalysisFilters;
   theme: Theme;
   onFiltersChange: (filters: AnalysisFilters) => void;
+}
+
+function BrowseSongsCard({
+  rows,
+  combineRanking,
+  theme,
+  compact,
+}: {
+  rows: SongStats[];
+  combineRanking: boolean;
+  theme: Theme;
+  compact: boolean;
+}) {
+  const {
+    viewMode,
+    setViewMode,
+    chartZoomed,
+    setChartZoomed,
+    plotRef,
+    resetChartView,
+  } = useVisualizationView(compact, 'table');
+  const chartRows = useMemo(() => [...rows].slice(0, 50), [rows]);
+
+  return (
+    <VisualizationShell
+      title={combineRanking ? 'Combined top songs' : 'All songs'}
+      subtitle="Sort, search, and paginate your full song history for the current filters."
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      chartZoomed={chartZoomed}
+      onChartReset={resetChartView}
+    >
+      {viewMode === 'chart' ? (
+        <RankedBarPlot
+          ref={plotRef}
+          labels={chartRows.map((row) => row.trackName)}
+          values={chartRows.map((row) => row.numPlays)}
+          hover={chartRows.map((row) => `${row.artistName}<br>${formatHours(row.totalHours)} total`)}
+          xTitle="Plays"
+          theme={theme}
+          compact={compact}
+          onZoomChange={setChartZoomed}
+        />
+      ) : null}
+      {viewMode === 'table' ? (
+        <DataTable
+          rows={rows}
+          rowKey={(row) => `${row.trackName}-${row.artistName}`}
+          columns={[
+            { key: 'trackName', label: 'Track' },
+            { key: 'artistName', label: 'Artist' },
+            { key: 'numPlays', label: 'Plays', align: 'right' },
+            {
+              key: 'totalHours',
+              label: 'Playtime',
+              align: 'right',
+              render: (row) => formatHours(row.totalHours),
+            },
+          ]}
+          searchPlaceholder="Search songs or artists…"
+        />
+      ) : null}
+      {viewMode === 'grid' ? (
+        <MobileRankedList
+          metricLabel="Plays"
+          items={chartRows.map((row) => ({
+            primary: row.trackName,
+            secondary: row.artistName,
+            value: row.numPlays,
+            valueText: row.numPlays.toLocaleString(),
+            meta: `${formatHours(row.totalHours)} total`,
+          }))}
+        />
+      ) : null}
+    </VisualizationShell>
+  );
+}
+
+function BrowseArtistsCard({
+  rows,
+  combineRanking,
+  theme,
+  compact,
+}: {
+  rows: ArtistStats[];
+  combineRanking: boolean;
+  theme: Theme;
+  compact: boolean;
+}) {
+  const {
+    viewMode,
+    setViewMode,
+    chartZoomed,
+    setChartZoomed,
+    plotRef,
+    resetChartView,
+  } = useVisualizationView(compact, 'table');
+  const chartRows = useMemo(() => [...rows].slice(0, 50), [rows]);
+
+  return (
+    <VisualizationShell
+      title={combineRanking ? 'Combined top artists' : 'All artists'}
+      subtitle="Every artist in the filtered dataset."
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      chartZoomed={chartZoomed}
+      onChartReset={resetChartView}
+    >
+      {viewMode === 'chart' ? (
+        <RankedBarPlot
+          ref={plotRef}
+          labels={chartRows.map((row) => row.artistName)}
+          values={chartRows.map((row) => row.listenCount)}
+          hover={chartRows.map((row) => formatHours(row.totalHours))}
+          xTitle="Plays"
+          theme={theme}
+          compact={compact}
+          onZoomChange={setChartZoomed}
+        />
+      ) : null}
+      {viewMode === 'table' ? (
+        <DataTable
+          rows={rows}
+          rowKey={(row) => row.artistName}
+          columns={[
+            { key: 'artistName', label: 'Artist' },
+            { key: 'listenCount', label: 'Plays', align: 'right' },
+            {
+              key: 'totalHours',
+              label: 'Playtime',
+              align: 'right',
+              render: (row) => formatHours(row.totalHours),
+            },
+          ]}
+          searchPlaceholder="Search artists…"
+        />
+      ) : null}
+      {viewMode === 'grid' ? (
+        <MobileRankedList
+          metricLabel="Plays"
+          items={chartRows.map((row) => ({
+            primary: row.artistName,
+            value: row.listenCount,
+            valueText: row.listenCount.toLocaleString(),
+            meta: formatHours(row.totalHours),
+          }))}
+        />
+      ) : null}
+    </VisualizationShell>
+  );
+}
+
+function LongestListensCard({
+  rows,
+  theme,
+  compact,
+}: {
+  rows: StreamRecord[];
+  theme: Theme;
+  compact: boolean;
+}) {
+  const {
+    viewMode,
+    setViewMode,
+    chartZoomed,
+    setChartZoomed,
+    plotRef,
+    resetChartView,
+  } = useVisualizationView(compact, 'table');
+
+  return (
+    <VisualizationShell
+      title="Longest single listens"
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      chartZoomed={chartZoomed}
+      onChartReset={resetChartView}
+    >
+      {viewMode === 'chart' ? (
+        <RankedBarPlot
+          ref={plotRef}
+          labels={rows.map((row) => row.trackName)}
+          values={rows.map((row) => row.msPlayed)}
+          hover={rows.map(
+            (row) =>
+              `${row.artistName}<br>${formatDuration(row.msPlayed)}<br>${formatLocalDateTime(row.ts)}`,
+          )}
+          xTitle="Duration (ms)"
+          theme={theme}
+          compact={compact}
+          onZoomChange={setChartZoomed}
+        />
+      ) : null}
+      {viewMode === 'table' ? (
+        <DataTable
+          rows={rows}
+          rowKey={(row) => `${row.ts.toISOString()}-${row.trackName}`}
+          columns={[
+            { key: 'trackName', label: 'Track' },
+            { key: 'artistName', label: 'Artist' },
+            {
+              key: 'msPlayed',
+              label: 'Duration',
+              align: 'right',
+              render: (row) => formatDuration(row.msPlayed),
+            },
+            {
+              key: 'ts',
+              label: 'Played at (local)',
+              render: (row) => formatLocalDateTime(row.ts),
+            },
+          ]}
+          searchPlaceholder="Search longest listens…"
+          pageSize={20}
+        />
+      ) : null}
+      {viewMode === 'grid' ? (
+        <MobileRankedList
+          metricLabel="Duration"
+          items={rows.map((row) => ({
+            primary: row.trackName,
+            secondary: row.artistName,
+            value: row.msPlayed,
+            valueText: formatDuration(row.msPlayed),
+            meta: formatLocalDateTime(row.ts),
+          }))}
+        />
+      ) : null}
+    </VisualizationShell>
+  );
 }
 
 export function Dashboard({
@@ -223,6 +458,8 @@ export function Dashboard({
               layout={{ xaxis: { title: { text: 'Year' }, dtick: 1 }, yaxis: { title: { text: 'Plays' } } }}
               theme={theme}
               height={360}
+              points={analysis.playsByYear}
+              pointsValueLabel="Plays"
             />
 
             <PlotlyCard
@@ -233,12 +470,13 @@ export function Dashboard({
                   analysis.hoursByYear.map((point) => point.value),
                   analysis.hoursByYear.map((point) => point.topItem ?? ''),
                   'Hours',
-
                 ),
               ]}
               layout={{ xaxis: { title: { text: 'Year' }, dtick: 1 }, yaxis: { title: { text: 'Hours' } } }}
               theme={theme}
               height={360}
+              points={analysis.hoursByYear}
+              pointsValueLabel="Hours"
             />
           </>
         ) : (
@@ -262,6 +500,8 @@ export function Dashboard({
           layout={{ xaxis: { title: { text: 'Date (local)' }, automargin: true }, yaxis: { title: { text: 'Plays' } } }}
           theme={theme}
           height={360}
+          points={analysis.playsByDate}
+          pointsValueLabel="Plays"
         />
 
         <PlotlyCard
@@ -277,6 +517,8 @@ export function Dashboard({
           layout={{ xaxis: { title: { text: 'Date (local)' }, automargin: true }, yaxis: { title: { text: 'Hours' } } }}
           theme={theme}
           height={360}
+          points={analysis.hoursByDate}
+          pointsValueLabel="Hours"
         />
 
         {showMultiYearCharts ? (
@@ -293,6 +535,8 @@ export function Dashboard({
             layout={{ xaxis: { title: { text: 'Year, month' }, tickangle: -45, automargin: true }, yaxis: { title: { text: 'Hours' } } }}
             theme={theme}
             height={360}
+            points={analysis.playtimeByYearMonth}
+            pointsValueLabel="Hours"
           />
         ) : null}
       </div>
@@ -302,6 +546,7 @@ export function Dashboard({
   if (activeTab === 'browse') {
     const combinedSongs = filters.combineRanking ? analysis.combinedSongs : analysis.allSongs;
     const combinedArtists = filters.combineRanking ? analysis.combinedArtists : analysis.allArtists;
+    const longestListens = [...analysis.records].sort((a, b) => b.msPlayed - a.msPlayed).slice(0, 100);
 
     return (
       <div className="grid gap-6">
@@ -324,72 +569,21 @@ export function Dashboard({
           </p>
         ) : null}
 
-        <ChartCard
-          title={filters.combineRanking ? 'Combined top songs' : 'All songs'}
-          subtitle="Sort, search, and paginate your full song history for the current filters."
-        >
-          <DataTable
-            rows={combinedSongs}
-            rowKey={(row) => `${row.trackName}-${row.artistName}`}
-            columns={[
-              { key: 'trackName', label: 'Track' },
-              { key: 'artistName', label: 'Artist' },
-              { key: 'numPlays', label: 'Plays', align: 'right' },
-              {
-                key: 'totalHours',
-                label: 'Playtime',
-                align: 'right',
-                render: (row) => formatHours(row.totalHours),
-              },
-            ]}
-            searchPlaceholder="Search songs or artists…"
-          />
-        </ChartCard>
+        <BrowseSongsCard
+          rows={combinedSongs}
+          combineRanking={filters.combineRanking}
+          theme={theme}
+          compact={isCompact}
+        />
 
-        <ChartCard
-          title={filters.combineRanking ? 'Combined top artists' : 'All artists'}
-          subtitle="Every artist in the filtered dataset."
-        >
-          <DataTable
-            rows={combinedArtists}
-            rowKey={(row) => row.artistName}
-            columns={[
-              { key: 'artistName', label: 'Artist' },
-              { key: 'listenCount', label: 'Plays', align: 'right' },
-              {
-                key: 'totalHours',
-                label: 'Playtime',
-                align: 'right',
-                render: (row) => formatHours(row.totalHours),
-              },
-            ]}
-            searchPlaceholder="Search artists…"
-          />
-        </ChartCard>
+        <BrowseArtistsCard
+          rows={combinedArtists}
+          combineRanking={filters.combineRanking}
+          theme={theme}
+          compact={isCompact}
+        />
 
-        <ChartCard title="Longest single listens">
-          <DataTable
-            rows={[...analysis.records].sort((a, b) => b.msPlayed - a.msPlayed).slice(0, 100)}
-            rowKey={(row) => `${row.ts.toISOString()}-${row.trackName}`}
-            columns={[
-              { key: 'trackName', label: 'Track' },
-              { key: 'artistName', label: 'Artist' },
-              {
-                key: 'msPlayed',
-                label: 'Duration',
-                align: 'right',
-                render: (row) => formatDuration(row.msPlayed),
-              },
-              {
-                key: 'ts',
-                label: 'Played at (local)',
-                render: (row) => formatLocalDateTime(row.ts),
-              },
-            ]}
-            searchPlaceholder="Search longest listens…"
-            pageSize={20}
-          />
-        </ChartCard>
+        <LongestListensCard rows={longestListens} theme={theme} compact={isCompact} />
       </div>
     );
   }

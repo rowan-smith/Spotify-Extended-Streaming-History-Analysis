@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { PLAYS_VS_TIME_INFO } from '../../content/siteContent';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
-import { ChartCard } from '../charts/ChartCard';
 import { MetricTabs } from '../charts/MetricTabs';
 import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
+import { DataTable } from '../DataTable';
+import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { AnalysisResult } from '../../types';
 
 interface ArtistsTabProps {
@@ -28,6 +29,16 @@ export function ArtistsTab({
 }: ArtistsTabProps) {
   const [metric, setMetric] = useState<'plays' | 'time'>('plays');
   const artists = metric === 'plays' ? analysis.topArtistsByPlays : analysis.topArtistsByTime;
+  const {
+    viewMode,
+    setViewMode,
+    chartZoomed,
+    setChartZoomed,
+    plotRef,
+    resetChartView,
+  } = useVisualizationView(compact);
+
+  const title = `Top ${topNLabel} artists by ${metric === 'plays' ? 'plays' : 'playtime'}`;
 
   return (
     <div className="grid gap-6 min-w-0">
@@ -41,11 +52,45 @@ export function ArtistsTab({
         {metric === 'plays' ? PLAYS_VS_TIME_INFO.plays : PLAYS_VS_TIME_INFO.time}
       </p>
 
-      {compact ? (
-        <ChartCard
-          title={`Top ${topNLabel} artists by ${metric === 'plays' ? 'plays' : 'playtime'}`}
-          subtitle="Ranked list optimised for smaller screens."
-        >
+      <RankedBarChart
+        title={title}
+        subtitle={compact ? 'Ranked list optimised for smaller screens.' : undefined}
+        labels={artists.map((artist) => artist.artistName)}
+        values={artists.map((artist) =>
+          metric === 'plays' ? artist.listenCount : artist.totalHours,
+        )}
+        hover={artists.map((artist) =>
+          metric === 'plays'
+            ? formatHours(artist.totalHours)
+            : `${artist.listenCount.toLocaleString()} plays`,
+        )}
+        xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
+        theme={theme}
+        compact={compact}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        chartZoomed={chartZoomed}
+        onChartReset={resetChartView}
+        plotRef={plotRef}
+        onZoomChange={setChartZoomed}
+        tableView={
+          <DataTable
+            rows={artists}
+            rowKey={(row) => row.artistName}
+            columns={[
+              { key: 'artistName', label: 'Artist' },
+              { key: 'listenCount', label: 'Plays', align: 'right' },
+              {
+                key: 'totalHours',
+                label: 'Playtime',
+                align: 'right',
+                render: (row) => formatHours(row.totalHours),
+              },
+            ]}
+            searchPlaceholder="Search artists…"
+          />
+        }
+        gridView={
           <MobileRankedList
             metricLabel={metric === 'plays' ? 'Plays' : 'Hours'}
             items={artists.map((artist) => ({
@@ -61,24 +106,8 @@ export function ArtistsTab({
                   : `${artist.listenCount.toLocaleString()} plays`,
             }))}
           />
-        </ChartCard>
-      ) : (
-        <RankedBarChart
-          title={`Top ${topNLabel} artists by ${metric === 'plays' ? 'plays' : 'playtime'}`}
-          labels={artists.map((artist) => artist.artistName)}
-          values={artists.map((artist) =>
-            metric === 'plays' ? artist.listenCount : artist.totalHours,
-          )}
-          hover={artists.map((artist) =>
-            metric === 'plays'
-              ? formatHours(artist.totalHours)
-              : `${artist.listenCount.toLocaleString()} plays`,
-          )}
-          xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
-          theme={theme}
-          compact={compact}
-        />
-      )}
+        }
+      />
 
       {showMultiYearCharts ? (
         <YearDrilldownChart

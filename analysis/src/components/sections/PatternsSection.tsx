@@ -1,11 +1,13 @@
+import { useMemo } from 'react';
 import type { Theme } from '../../hooks/useTheme';
 import {
   lineChart,
   multiYearLineSeries,
   verticalBarChart,
 } from '../../charts/plotHelpers';
-import type { AnalysisResult } from '../../types';
+import type { AnalysisResult, TimelinePoint } from '../../types';
 import { PlotlyCard } from '../charts/PlotlyCard';
+import { DataTable } from '../DataTable';
 
 interface PatternsSectionProps {
   analysis: AnalysisResult;
@@ -18,6 +20,18 @@ export function PatternsSection({
   theme,
   showMultiYearCharts,
 }: PatternsSectionProps) {
+  const monthlyHistoryPoints = useMemo<TimelinePoint[]>(
+    () =>
+      analysis.monthlyHistoryByYear.flatMap((series) =>
+        series.points.map((point) => ({
+          label: `${series.year} ${point.label}`,
+          value: point.value,
+          topItem: point.topItem,
+        })),
+      ),
+    [analysis.monthlyHistoryByYear],
+  );
+
   return (
     <>
       <PlotlyCard
@@ -34,6 +48,8 @@ export function PatternsSection({
         layout={{ xaxis: { title: { text: 'Month' } }, yaxis: { title: { text: 'Plays' } } }}
         theme={theme}
         height={360}
+        points={analysis.playsByMonth}
+        pointsValueLabel="Plays"
       />
 
       <PlotlyCard
@@ -50,6 +66,8 @@ export function PatternsSection({
         layout={{ xaxis: { title: { text: 'Month' } }, yaxis: { title: { text: 'Hours' } } }}
         theme={theme}
         height={360}
+        points={analysis.hoursByMonth}
+        pointsValueLabel="Hours"
       />
 
       <PlotlyCard
@@ -66,6 +84,8 @@ export function PatternsSection({
         layout={{ xaxis: { title: { text: 'Day of month' } }, yaxis: { title: { text: 'Plays' } } }}
         theme={theme}
         height={360}
+        points={analysis.playsByDayOfMonth}
+        pointsValueLabel="Plays"
       />
 
       <PlotlyCard
@@ -81,6 +101,8 @@ export function PatternsSection({
         layout={{ xaxis: { title: { text: 'Hour (local)' }, tickangle: -45 }, yaxis: { title: { text: 'Plays' } } }}
         theme={theme}
         height={360}
+        points={analysis.playsByHour}
+        pointsValueLabel="Plays"
       />
 
       {showMultiYearCharts && analysis.monthlyHistoryByYear.length > 1 ? (
@@ -95,6 +117,24 @@ export function PatternsSection({
           }}
           theme={theme}
           height={420}
+          points={monthlyHistoryPoints}
+          pointsValueLabel="Hours"
+          tableView={
+            <DataTable
+              rows={monthlyHistoryPoints}
+              rowKey={(row) => row.label}
+              columns={[
+                { key: 'label', label: 'Year, month' },
+                {
+                  key: 'value',
+                  label: 'Hours',
+                  align: 'right',
+                  render: (row) => row.value.toLocaleString(),
+                },
+              ]}
+              searchPlaceholder="Filter months…"
+            />
+          }
         />
       ) : null}
     </>

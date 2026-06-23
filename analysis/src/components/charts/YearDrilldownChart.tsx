@@ -1,18 +1,15 @@
 import { useState } from 'react';
-import Plot from '../../charts/Plot';
-import {
-  getPlotTheme,
-  horizontalBarChart,
-  rankedBarChartLayout,
-} from '../../charts/plotHelpers';
 import { PLAYS_VS_TIME_INFO } from '../../content/siteContent';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
 import type { AlbumStats, ArtistStats, SortMetric, SongStats } from '../../types';
 import { Select } from '@/components/ui/select';
-import { ChartCard } from './ChartCard';
 import { MetricTabs } from './MetricTabs';
 import { MobileRankedList } from './MobileRankedList';
+import { RankedBarPlot } from './RankedBarPlot';
+import { VisualizationShell } from './VisualizationShell';
+import { DataTable } from '../DataTable';
+import { useVisualizationView } from '@/hooks/useVisualizationView';
 
 interface YearDrilldownChartProps {
   title: string;
@@ -33,9 +30,17 @@ export function YearDrilldownChart({
   theme,
   compact,
 }: YearDrilldownChartProps) {
-  const [year, setYear] = useState(years[years.length - 1] ?? new Date().getFullYear());
+  const defaultYear = years[years.length - 1] ?? new Date().getFullYear();
+  const [year, setYear] = useState(defaultYear);
   const [sortMetric, setSortMetric] = useState<SortMetric>('plays');
-  const plotTheme = getPlotTheme(theme === 'dark');
+  const {
+    viewMode,
+    setViewMode,
+    chartZoomed,
+    setChartZoomed,
+    plotRef,
+    resetChartView,
+  } = useVisualizationView(compact);
 
   const rows = (sortMetric === 'plays' ? dataByPlays[year] : dataByTime[year]) ?? [];
 
@@ -71,8 +76,6 @@ export function YearDrilldownChart({
     return `${label}<br>${plays.toLocaleString()} plays`;
   });
 
-  const chartLayout = rankedBarChartLayout(labels.length, compact);
-
   const mobileItems = rows.map((row) => {
     const primary = (() => {
       if (labelKey === 'trackName') return (row as SongStats).trackName;
@@ -97,7 +100,14 @@ export function YearDrilldownChart({
   });
 
   return (
-    <ChartCard title={title} subtitle="Pick a year and metric to explore yearly rankings.">
+    <VisualizationShell
+      title={title}
+      subtitle="Pick a year and metric to explore yearly rankings."
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      chartZoomed={chartZoomed}
+      onChartReset={resetChartView}
+    >
       <MetricTabs
         active={sortMetric === 'time' ? 'time' : 'plays'}
         onChange={(value) => setSortMetric(value)}
@@ -118,44 +128,79 @@ export function YearDrilldownChart({
         </label>
       </div>
 
-      {compact ? (
+      {viewMode === 'chart' ? (
+        <RankedBarPlot
+          ref={plotRef}
+          labels={labels}
+          values={values}
+          hover={hover}
+          xTitle={sortMetric === 'plays' ? 'Plays' : 'Hours'}
+          theme={theme}
+          compact={compact}
+          onZoomChange={setChartZoomed}
+        />
+      ) : null}
+
+      {viewMode === 'grid' ? (
         <MobileRankedList
           metricLabel={sortMetric === 'plays' ? 'Plays' : 'Hours'}
           items={mobileItems}
         />
-      ) : (
-        <Plot
-          data={[
-            horizontalBarChart(
-              labels,
-              values,
-              hover,
-              sortMetric === 'plays' ? 'Plays' : 'Hours',
-              {
-                inlineLabels: chartLayout.inlineLabels,
-                accent: plotTheme.accent,
-              },
-            ),
+      ) : null}
+
+      {viewMode === 'table' && labelKey === 'trackName' ? (
+        <DataTable
+          rows={rows as SongStats[]}
+          rowKey={(row) => `${row.trackName}-${row.artistName}`}
+          columns={[
+            { key: 'trackName', label: 'Track' },
+            { key: 'artistName', label: 'Artist' },
+            { key: 'numPlays', label: 'Plays', align: 'right' },
+            {
+              key: 'totalHours',
+              label: 'Playtime',
+              align: 'right',
+              render: (row) => formatHours(row.totalHours),
+            },
           ]}
-          layout={{
-            ...plotTheme.layout,
-            height: chartLayout.height,
-            bargap: labels.length > 30 ? 0.08 : 0.15,
-            xaxis: {
-              title: { text: sortMetric === 'plays' ? 'Plays' : 'Hours' },
-              gridcolor: plotTheme.grid,
-            },
-            yaxis: {
-              automargin: !chartLayout.inlineLabels,
-              showticklabels: !chartLayout.inlineLabels,
-              tickfont: labels.length > 40 ? { size: 10 } : undefined,
-            },
-          }}
-          config={{ displayModeBar: false, responsive: true }}
-          style={{ width: '100%' }}
-          useResizeHandler
+          searchPlaceholder="Search rankings…"
         />
-      )}
-    </ChartCard>
+      ) : null}
+      {viewMode === 'table' && labelKey === 'artistName' ? (
+        <DataTable
+          rows={rows as ArtistStats[]}
+          rowKey={(row) => row.artistName}
+          columns={[
+            { key: 'artistName', label: 'Artist' },
+            { key: 'listenCount', label: 'Plays', align: 'right' },
+            {
+              key: 'totalHours',
+              label: 'Playtime',
+              align: 'right',
+              render: (row) => formatHours(row.totalHours),
+            },
+          ]}
+          searchPlaceholder="Search rankings…"
+        />
+      ) : null}
+      {viewMode === 'table' && labelKey === 'albumName' ? (
+        <DataTable
+          rows={rows as AlbumStats[]}
+          rowKey={(row) => `${row.albumName}-${row.artistName}`}
+          columns={[
+            { key: 'albumName', label: 'Album' },
+            { key: 'artistName', label: 'Artist' },
+            { key: 'numPlays', label: 'Plays', align: 'right' },
+            {
+              key: 'totalHours',
+              label: 'Playtime',
+              align: 'right',
+              render: (row) => formatHours(row.totalHours),
+            },
+          ]}
+          searchPlaceholder="Search rankings…"
+        />
+      ) : null}
+    </VisualizationShell>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   TOP_N_OPTIONS,
   MIN_DURATION_OPTIONS,
@@ -28,6 +28,7 @@ import { InfoTooltip } from './InfoTooltip';
 import { MetricTabs } from './charts/MetricTabs';
 import { RankingViewTabs } from './charts/RankingViewTabs';
 import { PLAYS_VS_TIME_INFO } from '../content/siteContent';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 interface FilterBarProps {
   viewMode: RankingViewMode;
@@ -39,6 +40,7 @@ interface FilterBarProps {
   bounds: FilterBounds;
   filteredPlays: number;
   totalPlays: number;
+  filtersPending?: boolean;
   onChange: (filters: AnalysisFilters) => void;
 }
 
@@ -84,14 +86,30 @@ export function FilterBar({
   bounds,
   filteredPlays,
   totalPlays,
+  filtersPending = false,
   onChange,
 }: FilterBarProps) {
   const isWrappedMode = viewMode === 'wrapped';
   const years = yearOptions(bounds.yearMin, bounds.yearMax);
   const activeCount = countActiveFilters(filters, bounds);
   const [advancedOpen, setAdvancedOpen] = useState(readAdvancedOpen);
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+  const debouncedSearch = useDebouncedValue(searchDraft, 250);
   const yearValue = quickYearValue(filters, bounds);
   const advancedActiveCount = Math.max(0, activeCount - (filters.preset === 'custom' ? 1 : 0));
+
+  useEffect(() => {
+    setSearchDraft(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (debouncedSearch === filters.search) {
+      return;
+    }
+    update({ ...filters, search: debouncedSearch });
+    // Commit debounced search without re-running when unrelated filters change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- debouncedSearch is the trigger
+  }, [debouncedSearch]);
 
   function update(next: AnalysisFilters) {
     onChange(next.preset === 'custom' ? next : markCustomPreset(next));
@@ -131,6 +149,7 @@ export function FilterBar({
           {!isWrappedMode && activeCount > 0
             ? ` · ${activeCount} active filter${activeCount === 1 ? '' : 's'}`
             : null}
+          {filtersPending ? ' · Updating…' : null}
         </p>
       </div>
 
@@ -320,9 +339,9 @@ export function FilterBar({
                 <Input
                   type="search"
                   className="h-8 px-2 text-xs"
-                  value={filters.search}
+                  value={searchDraft}
                   placeholder="Start typing to filter…"
-                  onChange={(event) => update({ ...filters, search: event.target.value })}
+                  onChange={(event) => setSearchDraft(event.target.value)}
                 />
               </label>
 

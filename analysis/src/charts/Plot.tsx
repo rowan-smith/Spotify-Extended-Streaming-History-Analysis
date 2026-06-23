@@ -52,7 +52,7 @@ const Plot = forwardRef<PlotHandle, PlotProps>(function Plot(
     <div ref={containerRef} className="w-full min-w-0 min-h-0 overflow-x-auto">
       <PlotlyComponent
         {...props}
-        config={{ scrollZoom: true, ...(config ?? {}) }}
+        config={{ scrollZoom: false, ...(config ?? {}) }}
         onRelayout={(event) => {
           if (isPlotZoomed(event)) {
             onZoomChange?.(true);

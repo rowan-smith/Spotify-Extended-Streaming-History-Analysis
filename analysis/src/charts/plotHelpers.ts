@@ -1,4 +1,4 @@
-import type { Layout, PlotData } from 'plotly.js-dist-min';
+import type { Config, Layout, PlotData } from 'plotly.js-dist-min';
 import type { YearSeries } from '../types';
 
 export function getPlotTheme(isDark: boolean) {

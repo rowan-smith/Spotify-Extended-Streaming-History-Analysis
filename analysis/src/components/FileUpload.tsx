@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { UPLOAD_DISCLAIMER } from '../content/assumptions';
+import type { LoadProgress } from '../workers/analysisWorkerClient';
 import { Button } from '@/components/ui/button';
 import { InfoTooltip } from './InfoTooltip';
 
@@ -8,6 +9,7 @@ interface FileUploadProps {
   onLoadSampleData?: () => void;
   onFilesSelected: (files: File[]) => void;
   loading: boolean;
+  loadProgress?: LoadProgress | null;
   error: string | null;
 }
 
@@ -16,6 +18,7 @@ export function FileUpload({
   onLoadSampleData,
   onFilesSelected,
   loading,
+  loadProgress = null,
   error,
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +92,11 @@ export function FileUpload({
           >
             {loading ? 'Processing…' : 'Choose files'}
           </Button>
+          {loading && loadProgress ? (
+            <p className="w-full text-sm text-muted-foreground mt-3" aria-live="polite">
+              {loadProgress.message}
+            </p>
+          ) : null}
           {onLoadSampleData ? (
             <Button
               variant="ghost"

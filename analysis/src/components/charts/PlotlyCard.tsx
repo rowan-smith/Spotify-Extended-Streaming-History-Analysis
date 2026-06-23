@@ -3,10 +3,9 @@ import type { Layout, Config, Data } from 'plotly.js-dist-min';
 import { getPlotTheme } from '@/charts/plotHelpers';
 import Plot, { type PlotHandle } from '@/charts/Plot';
 import type { TimelinePoint } from '@/types';
-import { DataTable } from '@/components/DataTable';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import { VisualizationShell } from './VisualizationShell';
-import { TimelinePointGrid } from './TimelinePointGrid';
+import { MobileRankedList } from './MobileRankedList';
 import type { ReactNode, RefObject } from 'react';
 import type { ViewMode } from './viewMode';
 
@@ -21,8 +20,7 @@ interface PlotlyCardProps {
   className?: string;
   points?: TimelinePoint[];
   pointsValueLabel?: string;
-  tableView?: ReactNode;
-  gridView?: ReactNode;
+  listView?: ReactNode;
   viewControls?: {
     viewMode: ViewMode;
     onViewModeChange: (mode: ViewMode) => void;
@@ -44,8 +42,7 @@ export function PlotlyCard({
   className,
   points,
   pointsValueLabel = 'Value',
-  tableView,
-  gridView,
+  listView,
   viewControls,
 }: PlotlyCardProps) {
   const internalView = useVisualizationView(false);
@@ -84,33 +81,19 @@ export function PlotlyCard({
     [plotTheme, height, layout],
   );
 
-  const resolvedTableView =
-    tableView ??
+  const resolvedListView =
+    listView ??
     (points ? (
-      <DataTable
-        rows={points}
-        rowKey={(row) => row.label}
-        columns={[
-          { key: 'label', label: 'Label' },
-          {
-            key: 'value',
-            label: pointsValueLabel,
-            align: 'right',
-            render: (row) => row.value.toLocaleString(),
-          },
-          {
-            key: 'topItem',
-            label: 'Top item',
-            render: (row) => row.topItem ?? '—',
-          },
-        ]}
-        searchPlaceholder="Filter rows…"
+      <MobileRankedList
+        metricLabel={pointsValueLabel}
+        items={points.map((point) => ({
+          primary: point.label,
+          secondary: point.topItem,
+          value: point.value,
+          valueText: point.value.toLocaleString(),
+        }))}
       />
     ) : null);
-
-  const resolvedGridView =
-    gridView ??
-    (points ? <TimelinePointGrid points={points} valueLabel={pointsValueLabel} /> : null);
 
   return (
     <VisualizationShell
@@ -133,8 +116,7 @@ export function PlotlyCard({
           style={{ width: '100%' }}
         />
       ) : null}
-      {viewMode === 'table' ? resolvedTableView : null}
-      {viewMode === 'grid' ? resolvedGridView : null}
+      {viewMode === 'table' ? resolvedListView : null}
     </VisualizationShell>
   );
 }

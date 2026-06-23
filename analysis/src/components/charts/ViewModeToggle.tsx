@@ -1,4 +1,4 @@
-import { BarChart3, LayoutGrid, Table2 } from 'lucide-react';
+import { BarChart3, LayoutGrid } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ALL_VIEW_MODES, type ViewMode } from './viewMode';
 
@@ -8,8 +8,7 @@ const VIEW_MODE_OPTIONS: {
   Icon: typeof BarChart3;
 }[] = [
   { value: 'chart', label: 'Chart view', Icon: BarChart3 },
-  { value: 'table', label: 'Table view', Icon: Table2 },
-  { value: 'grid', label: 'Grid view', Icon: LayoutGrid },
+  { value: 'table', label: 'Table view', Icon: LayoutGrid },
 ];
 
 interface ViewModeToggleProps {

@@ -107,6 +107,19 @@ export function topSongsForArtistInYear(
   );
 }
 
+export function topSongsInYear(
+  records: StreamRecord[],
+  year: number,
+  rankingMetric: RankingMetric,
+): SongStats[] {
+  const yearRecords = recordsInYear(records, year);
+
+  return sortSongs(
+    [...aggregateSongs(yearRecords).values()],
+    sortMetricFromRanking(rankingMetric),
+  );
+}
+
 export function buildYearTopSongBreakdowns(
   entries: YearTopEntry[],
   records: StreamRecord[],
@@ -114,10 +127,6 @@ export function buildYearTopSongBreakdowns(
   rankingMetric: RankingMetric,
 ): Map<string, SongStats[]> {
   const breakdowns = new Map<string, SongStats[]>();
-
-  if (labelKey !== 'albumName' && labelKey !== 'artistName') {
-    return breakdowns;
-  }
 
   for (const entry of entries) {
     const key = yearTopEntryKey(entry);
@@ -128,6 +137,8 @@ export function buildYearTopSongBreakdowns(
       );
     } else if (labelKey === 'artistName') {
       breakdowns.set(key, topSongsForArtistInYear(records, entry.year, entry.name, rankingMetric));
+    } else if (labelKey === 'trackName') {
+      breakdowns.set(key, topSongsInYear(records, entry.year, rankingMetric));
     }
   }
 

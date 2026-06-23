@@ -7,7 +7,6 @@ import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { WrappedRankingsView } from '../charts/WrappedRankingsView';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
-import { DataTable } from '../DataTable';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { AnalysisResult, RankingMetric } from '../../types';
 
@@ -84,25 +83,7 @@ export function SongsTab({
         onChartReset={resetChartView}
         plotRef={plotRef}
         onZoomChange={setChartZoomed}
-        tableView={
-          <DataTable
-            rows={songs}
-            rowKey={(row) => `${row.trackName}-${row.artistName}`}
-            columns={[
-              { key: 'trackName', label: 'Track' },
-              { key: 'artistName', label: 'Artist' },
-              { key: 'numPlays', label: 'Plays', align: 'right' },
-              {
-                key: 'totalHours',
-                label: 'Playtime',
-                align: 'right',
-                render: (row) => formatHours(row.totalHours),
-              },
-            ]}
-            searchPlaceholder="Search songs or artists…"
-          />
-        }
-        gridView={
+        listView={
           <MobileRankedList
             metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
             items={songs.map((song) => ({
@@ -131,6 +112,7 @@ export function SongsTab({
           dataByTime={analysis.topSongsByYearByTime}
           labelKey="trackName"
           rankingMetric={rankingMetric}
+          records={analysis.records}
           theme={theme}
           compact={compact}
         />

@@ -4,8 +4,8 @@ import { formatHours } from '../../utils/formatting';
 import type { AlbumStats, ArtistStats, RankingMetric, SongStats, StreamRecord } from '../../types';
 import { RankedBarPlot } from './RankedBarPlot';
 import { VisualizationShell } from './VisualizationShell';
-import { DataTable } from '../DataTable';
-import { YearTopExpandableTable } from './YearTopExpandableTable';
+import { YearTopExpandableList } from './YearTopExpandableList';
+import { MobileRankedList } from './MobileRankedList';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import {
   buildYearTopEntries,
@@ -26,44 +26,6 @@ interface YearDrilldownChartProps {
   records?: StreamRecord[];
   theme: Theme;
   compact: boolean;
-}
-
-function YearTopList({
-  entries,
-  metricLabel,
-}: {
-  entries: ReturnType<typeof buildYearTopEntries>;
-  metricLabel: string;
-}) {
-  return (
-    <div className="divide-y divide-border" role="list">
-      {entries.map((entry) => (
-        <article
-          key={entry.year}
-          className="flex items-start gap-4 py-3 first:pt-0 last:pb-0"
-          role="listitem"
-        >
-          <span className="shrink-0 w-12 text-sm font-bold tabular-nums text-muted-foreground">
-            {entry.year}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold break-words">{entry.name}</p>
-            {entry.detail ? (
-              <p className="text-xs text-muted-foreground break-words">{entry.detail}</p>
-            ) : null}
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-sm font-bold tabular-nums">
-              {metricLabel === 'Plays'
-                ? entry.plays.toLocaleString()
-                : formatHours(entry.hours)}
-            </p>
-            <p className="text-xs text-muted-foreground">{metricLabel}</p>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
 }
 
 export function YearDrilldownChart({
@@ -127,14 +89,11 @@ export function YearDrilldownChart({
     [entries, records, labelKey, rankingMetric],
   );
 
-  const useExpandableTable =
-    records != null && (labelKey === 'albumName' || labelKey === 'artistName');
+  const useExpandableList = records != null;
 
   if (entries.length === 0) {
     return null;
   }
-
-  const showArtistColumn = labelKey === 'trackName' || labelKey === 'albumName';
 
   return (
     <VisualizationShell
@@ -160,45 +119,31 @@ export function YearDrilldownChart({
         />
       ) : null}
 
-      {viewMode === 'grid' ? <YearTopList entries={entries} metricLabel={metricLabel} /> : null}
-
       {viewMode === 'table' ? (
-        useExpandableTable ? (
-          <YearTopExpandableTable
+        useExpandableList ? (
+          <YearTopExpandableList
             entries={entries}
             labelKey={labelKey}
+            rankingMetric={rankingMetric}
             songBreakdowns={songBreakdowns}
           />
         ) : (
-          <DataTable
-            rows={entries}
-            rowKey={(row) => String(row.year)}
-            columns={[
-              { key: 'year', label: 'Year', align: 'right' },
-              { key: 'name', label: entity.column },
-              ...(showArtistColumn
-                ? [
-                    {
-                      key: 'detail' as const,
-                      label: 'Artist',
-                      render: (row: (typeof entries)[number]) => row.detail ?? '—',
-                    },
-                  ]
-                : []),
-              {
-                key: 'plays',
-                label: 'Plays',
-                align: 'right' as const,
-                render: (row) => row.plays.toLocaleString(),
-              },
-              {
-                key: 'hours',
-                label: 'Playtime',
-                align: 'right' as const,
-                render: (row) => formatHours(row.hours),
-              },
-            ]}
-            searchPlaceholder="Filter years…"
+          <MobileRankedList
+            metricLabel={metricLabel}
+            items={entries.map((entry) => ({
+              primary: entry.name,
+              secondary: entry.detail,
+              badge: String(entry.year),
+              value: metricValueForEntry(entry, rankingMetric),
+              valueText:
+                rankingMetric === 'plays'
+                  ? entry.plays.toLocaleString()
+                  : formatHours(entry.hours),
+              meta:
+                rankingMetric === 'plays'
+                  ? formatHours(entry.hours)
+                  : `${entry.plays.toLocaleString()} plays`,
+            }))}
           />
         )
       ) : null}

@@ -7,7 +7,7 @@ import {
 } from '../../charts/plotHelpers';
 import type { AnalysisResult, RankingMetric, TimelinePoint } from '../../types';
 import { PlotlyCard } from '../charts/PlotlyCard';
-import { DataTable } from '../DataTable';
+import { FancyRankedListPanel } from '../charts/FancyRankedListPanel';
 
 interface PatternsSectionProps {
   analysis: AnalysisResult;
@@ -131,20 +131,16 @@ export function PatternsSection({
           height={420}
           points={monthlyHistoryPoints}
           pointsValueLabel="Hours"
-          tableView={
-            <DataTable
-              rows={monthlyHistoryPoints}
-              rowKey={(row) => row.label}
-              columns={[
-                { key: 'label', label: 'Year, month' },
-                {
-                  key: 'value',
-                  label: 'Hours',
-                  align: 'right',
-                  render: (row) => row.value.toLocaleString(),
-                },
-              ]}
+          listView={
+            <FancyRankedListPanel
+              metricLabel="Hours"
               searchPlaceholder="Filter months…"
+              items={monthlyHistoryPoints.map((point) => ({
+                primary: point.label,
+                secondary: point.topItem,
+                value: point.value,
+                valueText: point.value.toLocaleString(),
+              }))}
             />
           }
         />

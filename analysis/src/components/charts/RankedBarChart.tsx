@@ -21,8 +21,7 @@ interface RankedBarChartProps {
   onChartReset: () => void;
   plotRef: RefObject<PlotHandle | null>;
   onZoomChange: (zoomed: boolean) => void;
-  tableView: ReactNode;
-  gridView: ReactNode;
+  listView: ReactNode;
 }
 
 export function RankedBarChart({
@@ -40,8 +39,7 @@ export function RankedBarChart({
   onChartReset,
   plotRef,
   onZoomChange,
-  tableView,
-  gridView,
+  listView,
 }: RankedBarChartProps) {
   return (
     <VisualizationShell
@@ -67,8 +65,7 @@ export function RankedBarChart({
           onZoomChange={onZoomChange}
         />
       ) : null}
-      {viewMode === 'table' ? tableView : null}
-      {viewMode === 'grid' ? gridView : null}
+      {viewMode === 'table' ? listView : null}
     </VisualizationShell>
   );
 }

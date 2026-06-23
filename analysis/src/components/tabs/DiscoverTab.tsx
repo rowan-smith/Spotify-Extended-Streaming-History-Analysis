@@ -9,7 +9,7 @@ import { ChartCard } from '../charts/ChartCard';
 import { PlotlyCard } from '../charts/PlotlyCard';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { MobileRankedList } from '../charts/MobileRankedList';
-import { DataTable } from '../DataTable';
+import { FancyRankedListPanel } from '../charts/FancyRankedListPanel';
 import { InfoTooltip } from '../InfoTooltip';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -79,23 +79,15 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
           <ChartCard
             title={skipView === 'most' ? `Top ${topNLabel} most skipped` : `Top ${topNLabel} least skipped`}
           >
-            <DataTable
-              rows={skipSongs}
-              rowKey={(row) => `${row.trackName}-${row.artistName}`}
-              columns={[
-                { key: 'trackName', label: 'Track' },
-                { key: 'artistName', label: 'Artist' },
-                { key: 'skipCount', label: 'Skips', align: 'right' },
-                { key: 'totalPlays', label: 'Plays', align: 'right' },
-                {
-                  key: 'skipRate',
-                  label: 'Skip rate',
-                  align: 'right',
-                  render: (row) => formatSkipRate(row.skipRate),
-                },
-              ]}
-              searchPlaceholder="Search tracks…"
-              pageSize={20}
+            <MobileRankedList
+              metricLabel="Skips"
+              items={skipSongs.map((song) => ({
+                primary: song.trackName,
+                secondary: song.artistName,
+                value: song.skipCount,
+                valueText: song.skipCount.toLocaleString(),
+                meta: `${song.totalPlays.toLocaleString()} plays · ${formatSkipRate(song.skipRate)}`,
+              }))}
             />
           </ChartCard>
         ) : (
@@ -116,26 +108,7 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
             onChartReset={resetChartView}
             plotRef={plotRef}
             onZoomChange={setChartZoomed}
-            tableView={
-              <DataTable
-                rows={skipSongs}
-                rowKey={(row) => `${row.trackName}-${row.artistName}`}
-                columns={[
-                  { key: 'trackName', label: 'Track' },
-                  { key: 'artistName', label: 'Artist' },
-                  { key: 'skipCount', label: 'Skips', align: 'right' },
-                  { key: 'totalPlays', label: 'Plays', align: 'right' },
-                  {
-                    key: 'skipRate',
-                    label: 'Skip rate',
-                    align: 'right',
-                    render: (row) => formatSkipRate(row.skipRate),
-                  },
-                ]}
-                searchPlaceholder="Search tracks…"
-              />
-            }
-            gridView={
+            listView={
               <MobileRankedList
                 metricLabel="Skips"
                 items={skipSongs.map((song) => ({
@@ -187,16 +160,16 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
             />
 
             <ChartCard title="Discovery day details">
-              <DataTable
-                rows={analysis.discoveryDays}
-                rowKey={(row) => row.day}
-                columns={[
-                  { key: 'day', label: 'Date' },
-                  { key: 'discoveries', label: 'New tracks', align: 'right' },
-                  { key: 'topDiscovery', label: 'First discovery that day' },
-                ]}
+              <FancyRankedListPanel
+                metricLabel="New tracks"
                 searchPlaceholder="Search dates or tracks…"
                 pageSize={15}
+                items={analysis.discoveryDays.map((day) => ({
+                  primary: day.day,
+                  secondary: day.topDiscovery,
+                  value: day.discoveries,
+                  valueText: day.discoveries.toLocaleString(),
+                }))}
               />
             </ChartCard>
           </>
@@ -215,20 +188,16 @@ export function DiscoverTab({ analysis, topNLabel, theme, compact }: DiscoverTab
         </div>
 
         <ChartCard title="First listens">
-          <DataTable
-            rows={analysis.discoveryHistory}
-            rowKey={(row) => `${row.discoveredAt.toISOString()}-${row.trackName}`}
-            columns={[
-              {
-                key: 'discoveredAt',
-                label: 'Discovered',
-                render: (row) => formatLocalDateTime(row.discoveredAt),
-              },
-              { key: 'trackName', label: 'Track' },
-              { key: 'artistName', label: 'Artist' },
-            ]}
+          <FancyRankedListPanel
+            metricLabel="Discovered"
             searchPlaceholder="Search discoveries…"
             pageSize={25}
+            items={analysis.discoveryHistory.map((row) => ({
+              primary: row.trackName,
+              secondary: row.artistName,
+              value: row.discoveredAt.getTime(),
+              valueText: formatLocalDateTime(row.discoveredAt),
+            }))}
           />
         </ChartCard>
       </section>

@@ -37,18 +37,20 @@ export default function App() {
     navigate,
     navOpen,
     setNavOpen,
-    allRecords,
+    totalRecordCount,
     bounds,
     filters,
     activeTab,
     setActiveTab,
     loading,
+    loadProgress,
     error,
     isSampleData,
     activeFilterContext,
     dashboardTabs,
     activeFilteredPlays,
     activeAnalysis,
+    filtersPending,
     viewMode,
     setViewMode,
     isWrappedMode,
@@ -85,7 +87,7 @@ export default function App() {
               { id: 'request-data', label: 'Get your data' },
               { id: 'assumptions', label: 'Assumptions' },
               { id: 'data-handling', label: 'Data handling' },
-              ...(allRecords.length > 0 ? [{ id: 'dashboard' as const, label: 'Your stats' }] : []),
+              ...(totalRecordCount > 0 ? [{ id: 'dashboard' as const, label: 'Your stats' }] : []),
             ] as { id: AppView; label: string }[]).map(({ id, label }) => (
               <button
                 key={id}
@@ -127,6 +129,7 @@ export default function App() {
             onFilesSelected={handleFilesSelected}
             onLoadSampleData={handleSampleDataSelected}
             loading={loading}
+            loadProgress={loadProgress}
             error={error}
           />
         ) : null}
@@ -135,7 +138,7 @@ export default function App() {
           <Suspense fallback={<ViewFallback />}>
             <AssumptionsPage
               onBack={returnToMain}
-              backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+              backLabel={totalRecordCount > 0 ? 'Back to your stats' : 'Back to home'}
             />
           </Suspense>
         ) : null}
@@ -144,7 +147,7 @@ export default function App() {
           <Suspense fallback={<ViewFallback />}>
             <DataHandlingPage
               onBack={returnToMain}
-              backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+              backLabel={totalRecordCount > 0 ? 'Back to your stats' : 'Back to home'}
             />
           </Suspense>
         ) : null}
@@ -153,12 +156,12 @@ export default function App() {
           <Suspense fallback={<ViewFallback />}>
             <RequestDataPage
               onBack={returnToMain}
-              backLabel={allRecords.length > 0 ? 'Back to your stats' : 'Back to home'}
+              backLabel={totalRecordCount > 0 ? 'Back to your stats' : 'Back to home'}
             />
           </Suspense>
         ) : null}
 
-        {view === 'dashboard' && allRecords.length > 0 ? (
+        {view === 'dashboard' && totalRecordCount > 0 ? (
           <Suspense fallback={<ViewFallback />}>
             <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-6 min-w-0">
               <FilterBar
@@ -170,7 +173,8 @@ export default function App() {
                 filters={filters}
                 bounds={bounds}
                 filteredPlays={activeFilteredPlays}
-                totalPlays={allRecords.length}
+                totalPlays={totalRecordCount}
+                filtersPending={filtersPending}
                 onChange={handleFiltersChange}
               />
 

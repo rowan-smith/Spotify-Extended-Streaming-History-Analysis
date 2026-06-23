@@ -7,7 +7,7 @@ import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { WrappedRankingsView } from '../charts/WrappedRankingsView';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
-import { DataTable } from '../DataTable';
+import { songsForArtist } from '../../analysis/rankedListBreakdown';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { AnalysisResult, RankingMetric } from '../../types';
 
@@ -53,6 +53,27 @@ export function ArtistsTab({
 
   const title = `Top ${topNLabel} artists by ${rankingMetric === 'plays' ? 'plays' : 'playtime'}`;
 
+  const artistListItems = useMemo(
+    () =>
+      artists.map((artist) => ({
+        primary: artist.artistName,
+        rowKey: artist.artistName,
+        value: rankingMetric === 'plays' ? artist.listenCount : artist.totalHours,
+        valueText:
+          rankingMetric === 'plays'
+            ? artist.listenCount.toLocaleString()
+            : formatHours(artist.totalHours),
+        meta:
+          rankingMetric === 'plays'
+            ? formatHours(artist.totalHours)
+            : `${artist.listenCount.toLocaleString()} plays`,
+        breakdown: songsForArtist(analysis.records, artist.artistName, rankingMetric),
+        breakdownLabel: 'Songs by this artist',
+        hideArtistInBreakdown: true,
+      })),
+    [analysis.records, artists, rankingMetric],
+  );
+
   if (isWrappedMode) {
     return <WrappedRankingsView kind="artists" analysis={analysis} year={wrappedYear} />;
   }
@@ -86,38 +107,11 @@ export function ArtistsTab({
         onChartReset={resetChartView}
         plotRef={plotRef}
         onZoomChange={setChartZoomed}
-        tableView={
-          <DataTable
-            rows={artists}
-            rowKey={(row) => row.artistName}
-            columns={[
-              { key: 'artistName', label: 'Artist' },
-              { key: 'listenCount', label: 'Plays', align: 'right' },
-              {
-                key: 'totalHours',
-                label: 'Playtime',
-                align: 'right',
-                render: (row) => formatHours(row.totalHours),
-              },
-            ]}
-            searchPlaceholder="Search artists…"
-          />
-        }
-        gridView={
+        listView={
           <MobileRankedList
             metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
-            items={artists.map((artist) => ({
-              primary: artist.artistName,
-              value: rankingMetric === 'plays' ? artist.listenCount : artist.totalHours,
-              valueText:
-                rankingMetric === 'plays'
-                  ? artist.listenCount.toLocaleString()
-                  : formatHours(artist.totalHours),
-              meta:
-                rankingMetric === 'plays'
-                  ? formatHours(artist.totalHours)
-                  : `${artist.listenCount.toLocaleString()} plays`,
-            }))}
+            rankingMetric={rankingMetric}
+            items={artistListItems}
           />
         }
       />

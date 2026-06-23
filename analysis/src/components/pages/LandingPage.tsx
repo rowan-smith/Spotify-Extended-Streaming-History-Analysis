@@ -1,5 +1,6 @@
 import { FileUpload } from '../FileUpload';
 import { PrivacyBanner } from '../PrivacyBanner';
+import type { LoadProgress } from '../../workers/analysisWorkerClient';
 
 interface LandingPageProps {
   onOpenDataHandling: () => void;
@@ -7,6 +8,7 @@ interface LandingPageProps {
   onFilesSelected: (files: File[]) => void;
   onLoadSampleData: () => void;
   loading: boolean;
+  loadProgress: LoadProgress | null;
   error: string | null;
 }
 
@@ -16,6 +18,7 @@ export function LandingPage({
   onFilesSelected,
   onLoadSampleData,
   loading,
+  loadProgress,
   error,
 }: LandingPageProps) {
   return (
@@ -38,6 +41,7 @@ export function LandingPage({
         onLoadSampleData={onLoadSampleData}
         onFilesSelected={onFilesSelected}
         loading={loading}
+        loadProgress={loadProgress}
         error={error}
       />
     </div>

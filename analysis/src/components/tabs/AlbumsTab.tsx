@@ -7,7 +7,7 @@ import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { WrappedRankingsView } from '../charts/WrappedRankingsView';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
-import { DataTable } from '../DataTable';
+import { songsOnAlbum } from '../../analysis/rankedListBreakdown';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { AnalysisResult, RankingMetric } from '../../types';
 
@@ -53,6 +53,32 @@ export function AlbumsTab({
 
   const title = `Top ${topNLabel} albums by ${rankingMetric === 'plays' ? 'plays' : 'playtime'}`;
 
+  const albumListItems = useMemo(
+    () =>
+      albums.map((album) => ({
+        primary: album.albumName,
+        secondary: album.artistName,
+        rowKey: `${album.albumName}-${album.artistName}`,
+        value: rankingMetric === 'plays' ? album.numPlays : album.totalHours,
+        valueText:
+          rankingMetric === 'plays'
+            ? album.numPlays.toLocaleString()
+            : formatHours(album.totalHours),
+        meta:
+          rankingMetric === 'plays'
+            ? `${formatHours(album.totalHours)} total`
+            : `${album.numPlays.toLocaleString()} plays`,
+        breakdown: songsOnAlbum(
+          analysis.records,
+          album.albumName,
+          album.artistName,
+          rankingMetric,
+        ),
+        breakdownLabel: 'Songs on this album',
+      })),
+    [albums, analysis.records, rankingMetric],
+  );
+
   if (isWrappedMode) {
     return <WrappedRankingsView kind="albums" analysis={analysis} year={wrappedYear} />;
   }
@@ -84,40 +110,11 @@ export function AlbumsTab({
         onChartReset={resetChartView}
         plotRef={plotRef}
         onZoomChange={setChartZoomed}
-        tableView={
-          <DataTable
-            rows={albums}
-            rowKey={(row) => `${row.albumName}-${row.artistName}`}
-            columns={[
-              { key: 'albumName', label: 'Album' },
-              { key: 'artistName', label: 'Artist' },
-              { key: 'numPlays', label: 'Plays', align: 'right' },
-              {
-                key: 'totalHours',
-                label: 'Playtime',
-                align: 'right',
-                render: (row) => formatHours(row.totalHours),
-              },
-            ]}
-            searchPlaceholder="Search albums or artists…"
-          />
-        }
-        gridView={
+        listView={
           <MobileRankedList
             metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
-            items={albums.map((album) => ({
-              primary: album.albumName,
-              secondary: album.artistName,
-              value: rankingMetric === 'plays' ? album.numPlays : album.totalHours,
-              valueText:
-                rankingMetric === 'plays'
-                  ? album.numPlays.toLocaleString()
-                  : formatHours(album.totalHours),
-              meta:
-                rankingMetric === 'plays'
-                  ? `${formatHours(album.totalHours)} total`
-                  : `${album.numPlays.toLocaleString()} plays`,
-            }))}
+            rankingMetric={rankingMetric}
+            items={albumListItems}
           />
         }
       />

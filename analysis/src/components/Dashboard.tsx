@@ -4,7 +4,7 @@ import { shouldShowPaceMetrics, effectiveRankingMetric, shouldShowYearlyTopBreak
 import { getSummaryInsights } from '../analysis/insights';
 import { sortArtists, sortSongs } from '../analysis/aggregation';
 import { formatDuration, formatHours, formatLocalDate, formatLocalDateTime } from '../utils/formatting';
-import { METRIC_INFO } from '../content/siteContent';
+import { METRIC_INFO, FILTER_OPTION_INFO } from '../content/siteContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Theme } from '../hooks/useTheme';
 import type {
@@ -25,12 +25,11 @@ import { SongsTab } from './tabs/SongsTab';
 import { ArtistsTab } from './tabs/ArtistsTab';
 import { AlbumsTab } from './tabs/AlbumsTab';
 import { DiscoverTab } from './tabs/DiscoverTab';
-import { DataTable } from './DataTable';
-import { Checkbox } from '@/components/ui/checkbox';
-import { FILTER_OPTION_INFO } from '../content/siteContent';
+import { FancyRankedListPanel } from './charts/FancyRankedListPanel';
+import { songsForArtist } from '../analysis/rankedListBreakdown';
 import { VisualizationShell } from './charts/VisualizationShell';
 import { RankedBarPlot } from './charts/RankedBarPlot';
-import { MobileRankedList } from './charts/MobileRankedList';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
 import type { SongStats, ArtistStats } from '../types';
 import type { StreamRecord } from '../types';
@@ -97,27 +96,10 @@ function BrowseSongsCard({
         />
       ) : null}
       {viewMode === 'table' ? (
-        <DataTable
-          rows={rows}
-          rowKey={(row) => `${row.trackName}-${row.artistName}`}
-          columns={[
-            { key: 'trackName', label: 'Track' },
-            { key: 'artistName', label: 'Artist' },
-            { key: 'numPlays', label: 'Plays', align: 'right' },
-            {
-              key: 'totalHours',
-              label: 'Playtime',
-              align: 'right',
-              render: (row) => formatHours(row.totalHours),
-            },
-          ]}
-          searchPlaceholder="Search songs or artists…"
-        />
-      ) : null}
-      {viewMode === 'grid' ? (
-        <MobileRankedList
+        <FancyRankedListPanel
           metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
-          items={chartRows.map((row) => ({
+          searchPlaceholder="Search songs or artists…"
+          items={rows.map((row) => ({
             primary: row.trackName,
             secondary: row.artistName,
             value: rankingMetric === 'plays' ? row.numPlays : row.totalHours,
@@ -138,12 +120,14 @@ function BrowseSongsCard({
 
 function BrowseArtistsCard({
   rows,
+  records,
   combineRanking,
   rankingMetric,
   theme,
   compact,
 }: {
   rows: ArtistStats[];
+  records: StreamRecord[];
   combineRanking: boolean;
   rankingMetric: RankingMetric;
   theme: Theme;
@@ -158,6 +142,26 @@ function BrowseArtistsCard({
     resetChartView,
   } = useVisualizationView(compact, 'table');
   const chartRows = useMemo(() => [...rows].slice(0, 50), [rows]);
+  const artistListItems = useMemo(
+    () =>
+      rows.map((row) => ({
+        primary: row.artistName,
+        rowKey: row.artistName,
+        value: rankingMetric === 'plays' ? row.listenCount : row.totalHours,
+        valueText:
+          rankingMetric === 'plays'
+            ? row.listenCount.toLocaleString()
+            : formatHours(row.totalHours),
+        meta:
+          rankingMetric === 'plays'
+            ? formatHours(row.totalHours)
+            : `${row.listenCount.toLocaleString()} plays`,
+        breakdown: songsForArtist(records, row.artistName, rankingMetric),
+        breakdownLabel: 'Songs by this artist',
+        hideArtistInBreakdown: true,
+      })),
+    [records, rows, rankingMetric],
+  );
 
   return (
     <VisualizationShell
@@ -187,37 +191,11 @@ function BrowseArtistsCard({
         />
       ) : null}
       {viewMode === 'table' ? (
-        <DataTable
-          rows={rows}
-          rowKey={(row) => row.artistName}
-          columns={[
-            { key: 'artistName', label: 'Artist' },
-            { key: 'listenCount', label: 'Plays', align: 'right' },
-            {
-              key: 'totalHours',
-              label: 'Playtime',
-              align: 'right',
-              render: (row) => formatHours(row.totalHours),
-            },
-          ]}
-          searchPlaceholder="Search artists…"
-        />
-      ) : null}
-      {viewMode === 'grid' ? (
-        <MobileRankedList
+        <FancyRankedListPanel
           metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
-          items={chartRows.map((row) => ({
-            primary: row.artistName,
-            value: rankingMetric === 'plays' ? row.listenCount : row.totalHours,
-            valueText:
-              rankingMetric === 'plays'
-                ? row.listenCount.toLocaleString()
-                : formatHours(row.totalHours),
-            meta:
-              rankingMetric === 'plays'
-                ? formatHours(row.totalHours)
-                : `${row.listenCount.toLocaleString()} plays`,
-          }))}
+          rankingMetric={rankingMetric}
+          searchPlaceholder="Search artists…"
+          items={artistListItems}
         />
       ) : null}
     </VisualizationShell>
@@ -266,31 +244,10 @@ function LongestListensCard({
         />
       ) : null}
       {viewMode === 'table' ? (
-        <DataTable
-          rows={rows}
-          rowKey={(row) => `${row.ts.toISOString()}-${row.trackName}`}
-          columns={[
-            { key: 'trackName', label: 'Track' },
-            { key: 'artistName', label: 'Artist' },
-            {
-              key: 'msPlayed',
-              label: 'Duration',
-              align: 'right',
-              render: (row) => formatDuration(row.msPlayed),
-            },
-            {
-              key: 'ts',
-              label: 'Played at (local)',
-              render: (row) => formatLocalDateTime(row.ts),
-            },
-          ]}
+        <FancyRankedListPanel
+          metricLabel="Duration"
           searchPlaceholder="Search longest listens…"
           pageSize={20}
-        />
-      ) : null}
-      {viewMode === 'grid' ? (
-        <MobileRankedList
-          metricLabel="Duration"
           items={rows.map((row) => ({
             primary: row.trackName,
             secondary: row.artistName,
@@ -624,6 +581,7 @@ export function Dashboard({
 
         <BrowseArtistsCard
           rows={browseArtists}
+          records={analysis.records}
           combineRanking={filters.combineRanking}
           rankingMetric={rankingMetric}
           theme={theme}

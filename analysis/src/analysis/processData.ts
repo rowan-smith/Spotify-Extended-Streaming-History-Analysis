@@ -4,13 +4,30 @@ import { computeSongMetrics, computeArtistMetrics, computeAlbumMetrics } from '.
 import {
   buildDiscoveryDays,
   buildDiscoveryHistory,
-  buildDayOfWeekDistribution,
   buildSkipRankings,
 } from './exploration';
 import { normalizeRawRecord, parseTimestamp } from './normalizeRecord';
-import { sortSongs, sortArtists, sortAlbums, topSongs, topArtists, topAlbums, aggregateSongs, aggregateArtists, aggregateAlbums } from './aggregation';
+import { sortSongs, sortArtists, sortAlbums, topSongs, topArtists, topAlbums } from './aggregation';
 import { computeOverview } from './overview';
-import { buildYearTimeline, buildDailyTimeline, buildYearMonthTimeline, buildMonthlyHistoryByYear, buildMonthSeasonality, buildDayOfMonthSeasonality, buildHourDistribution, buildTopByYear } from './timeline';
+import {
+  aggregationMapsFromRecords,
+  emptyRecordScan,
+  hoursByDateFromScan,
+  hoursByMonthFromScan,
+  hoursByYearFromScan,
+  monthlyHistoryByYearFromScan,
+  playtimeByYearMonthFromScan,
+  playsByDateFromScan,
+  playsByDayOfMonthFromScan,
+  playsByDayOfWeekFromScan,
+  playsByHourFromScan,
+  playsByMonthFromScan,
+  playsByYearFromScan,
+  scanRecords,
+  topAlbumsByYearFromScan,
+  topArtistsByYearFromScan,
+  topSongsByYearFromScan,
+} from './recordScan';
 import type {
   AnalysisResult,
   ContentKind,
@@ -18,9 +35,37 @@ import type {
   StreamRecord,
 } from '../types';
 
-async function loadRecordsFromZip(file: File): Promise<StreamRecord[]> {
+export interface LoadProgress {
+  phase: 'reading' | 'parsing' | 'cleaning' | 'deduping' | 'done';
+  message: string;
+  current?: number;
+  total?: number;
+}
+
+function reportProgress(
+  onProgress: ((progress: LoadProgress) => void) | undefined,
+  progress: LoadProgress,
+) {
+  onProgress?.(progress);
+}
+
+function rawRecordsFromParsed(parsed: RawRecord[] | RawRecord): RawRecord[] {
+  if (Array.isArray(parsed)) {
+    return parsed.map((record) => normalizeRawRecord(record));
+  }
+  return [normalizeRawRecord(parsed)];
+}
+
+async function loadRecordsFromZip(
+  file: File,
+  onProgress?: (progress: LoadProgress) => void,
+): Promise<StreamRecord[]> {
   try {
     const zip = await JSZip.loadAsync(file);
+    reportProgress(onProgress, {
+      phase: 'reading',
+      message: 'Reading zip archive…',
+    });
 
     const filePaths = Object.keys(zip.files);
     const jsonPaths = filePaths.filter((p) => p.toLowerCase().endsWith('.json'));
@@ -29,34 +74,35 @@ async function loadRecordsFromZip(file: File): Promise<StreamRecord[]> {
       throw new Error('No .json files found in the zip archive.');
     }
 
-    let allRecords: StreamRecord[] = [];
-
-    for (const path of jsonPaths) {
-      const entry = zip.files[path];
-      if (entry.dir) continue;
-
-      const text = await entry.async('string');
-      const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
-
-      const rawRecords: RawRecord[] = [];
-
-      if (Array.isArray(parsed)) {
-        for (const record of parsed) {
-          rawRecords.push(normalizeRawRecord(record));
+    let parsedCount = 0;
+    const parsedFiles = await Promise.all(
+      jsonPaths.map(async (path) => {
+        const entry = zip.files[path];
+        if (entry.dir) {
+          return [] as StreamRecord[];
         }
-      } else {
-        rawRecords.push(normalizeRawRecord(parsed));
-      }
 
-      const cleaned = cleanRecords(rawRecords);
-      allRecords = allRecords.concat(cleaned);
-    }
+        const text = await entry.async('string');
+        const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
+        const cleaned = cleanRecords(rawRecordsFromParsed(parsed), { skipDedupe: true });
+        parsedCount += 1;
+        reportProgress(onProgress, {
+          phase: 'parsing',
+          message: `Parsed ${parsedCount} of ${jsonPaths.length} JSON files…`,
+          current: parsedCount,
+          total: jsonPaths.length,
+        });
+        return cleaned;
+      }),
+    );
+
+    const allRecords = parsedFiles.flat();
 
     if (allRecords.length === 0) {
       throw new Error('No streaming records found inside the uploaded zip archive.');
     }
 
-    return dedupeRecords(allRecords);
+    return allRecords;
   } catch (cause) {
     throw new Error(
       `Zip error: ${cause instanceof Error ? cause.message : cause}`,
@@ -100,7 +146,10 @@ function classifyContent(row: RawRecord): ContentKind | null {
   return null;
 }
 
-export function cleanRecords(raw: RawRecord[]): StreamRecord[] {
+export function cleanRecords(
+  raw: RawRecord[],
+  options?: { skipDedupe?: boolean },
+): StreamRecord[] {
   const cleaned: StreamRecord[] = [];
 
   for (const row of raw) {
@@ -145,7 +194,27 @@ export function cleanRecords(raw: RawRecord[]): StreamRecord[] {
     });
   }
 
+  if (options?.skipDedupe) {
+    return cleaned;
+  }
+
   return dedupeRecords(cleaned);
+}
+
+export interface LoadedDataSummary {
+  recordCount: number;
+  yearMin: number;
+  yearMax: number;
+}
+
+export function summarizeLoadedRecords(records: StreamRecord[]): LoadedDataSummary {
+  const yearMin = records[0]?.ts.getUTCFullYear() ?? new Date().getFullYear();
+  const yearMax = records[records.length - 1]?.ts.getUTCFullYear() ?? yearMin;
+  return {
+    recordCount: records.length,
+    yearMin,
+    yearMax,
+  };
 }
 
 function dedupeRecords(records: StreamRecord[]): StreamRecord[] {
@@ -176,15 +245,14 @@ export function analyzeRecords(
   topN = 10,
   skipSourceRecords?: StreamRecord[],
 ): AnalysisResult {
-  const songMap = aggregateSongs(records);
-  const artistMap = aggregateArtists(records);
-  const albumMap = aggregateAlbums(records);
+  const scan = records.length > 0 ? scanRecords(records) : emptyRecordScan();
+  const { songMap, artistMap, albumMap } =
+    records.length > 0
+      ? scan
+      : aggregationMapsFromRecords(records);
   const allSongs = sortSongs([...songMap.values()], 'plays');
   const allArtists = sortArtists([...artistMap.values()], 'plays');
   const allAlbums = sortAlbums([...albumMap.values()], 'plays');
-  const availableYears = [...new Set(records.map((record) => record.ts.getUTCFullYear()))].sort(
-    (a, b) => a - b,
-  );
   const skipRecords = skipSourceRecords ?? records;
   const skipRankings = buildSkipRankings(skipRecords, topN);
 
@@ -206,67 +274,83 @@ export function analyzeRecords(
     topAlbumsByTime: topAlbums(albumMap, 'time', topN),
     combinedSongs: topSongs(songMap, 'combined', topN),
     combinedArtists: topArtists(artistMap, 'combined', topN),
-    playsByYear: buildYearTimeline(records, 'plays'),
-    hoursByYear: buildYearTimeline(records, 'time'),
-    playsByDate: buildDailyTimeline(records, 'plays'),
-    hoursByDate: buildDailyTimeline(records, 'time'),
-    playtimeByYearMonth: buildYearMonthTimeline(records),
-    monthlyHistoryByYear: buildMonthlyHistoryByYear(records),
-    playsByMonth: buildMonthSeasonality(records, 'plays'),
-    hoursByMonth: buildMonthSeasonality(records, 'time'),
-    playsByDayOfMonth: buildDayOfMonthSeasonality(records),
-    playsByHour: buildHourDistribution(records),
-    playsByDayOfWeek: buildDayOfWeekDistribution(records),
+    playsByYear: playsByYearFromScan(scan),
+    hoursByYear: hoursByYearFromScan(scan),
+    playsByDate: playsByDateFromScan(scan),
+    hoursByDate: hoursByDateFromScan(scan),
+    playtimeByYearMonth: playtimeByYearMonthFromScan(scan),
+    monthlyHistoryByYear: monthlyHistoryByYearFromScan(scan),
+    playsByMonth: playsByMonthFromScan(scan),
+    hoursByMonth: hoursByMonthFromScan(scan),
+    playsByDayOfMonth: playsByDayOfMonthFromScan(scan),
+    playsByHour: playsByHourFromScan(scan),
+    playsByDayOfWeek: playsByDayOfWeekFromScan(scan),
     mostSkippedSongs: skipRankings.mostSkipped,
     leastSkippedSongs: skipRankings.leastSkipped,
     discoveryHistory: buildDiscoveryHistory(records),
     discoveryDays: buildDiscoveryDays(records, topN),
-    topSongsByYear: buildTopByYear(records, 'songs', 'plays', topN),
-    topSongsByYearByTime: buildTopByYear(records, 'songs', 'time', topN),
-    topArtistsByYear: buildTopByYear(records, 'artists', 'plays', topN),
-    topArtistsByYearByTime: buildTopByYear(records, 'artists', 'time', topN),
-    topAlbumsByYear: buildTopByYear(records, 'albums', 'plays', topN),
-    topAlbumsByYearByTime: buildTopByYear(records, 'albums', 'time', topN),
-    availableYears,
+    topSongsByYear: topSongsByYearFromScan(scan, 'plays', topN),
+    topSongsByYearByTime: topSongsByYearFromScan(scan, 'time', topN),
+    topArtistsByYear: topArtistsByYearFromScan(scan, 'plays', topN),
+    topArtistsByYearByTime: topArtistsByYearFromScan(scan, 'time', topN),
+    topAlbumsByYear: topAlbumsByYearFromScan(scan, 'plays', topN),
+    topAlbumsByYearByTime: topAlbumsByYearFromScan(scan, 'time', topN),
+    availableYears: scan.availableYears,
   };
 }
 
-export async function loadRecordsFromFiles(files: File[]): Promise<StreamRecord[]> {
-  const allRecords: StreamRecord[] = [];
+export async function loadRecordsFromFiles(
+  files: File[],
+  onProgress?: (progress: LoadProgress) => void,
+): Promise<StreamRecord[]> {
+  reportProgress(onProgress, {
+    phase: 'reading',
+    message: `Reading ${files.length} file${files.length === 1 ? '' : 's'}…`,
+    current: 0,
+    total: files.length,
+  });
 
-  for (const file of files) {
-    if (file.name.toLowerCase().endsWith('.zip')) {
-      const zipRecords = await loadRecordsFromZip(file);
-      for (const record of zipRecords) {
-        allRecords.push(record);
+  let readCount = 0;
+  const batches = await Promise.all(
+    files.map(async (file) => {
+      let batch: StreamRecord[] = [];
+
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        batch = await loadRecordsFromZip(file, onProgress);
+      } else if (file.name.toLowerCase().endsWith('.json')) {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
+        batch = cleanRecords(rawRecordsFromParsed(parsed), { skipDedupe: true });
       }
-    } else if (file.name.toLowerCase().endsWith('.json')) {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as RawRecord[] | RawRecord;
 
-      const rawRecords: RawRecord[] = [];
-      if (Array.isArray(parsed)) {
-        for (const record of parsed) {
-          rawRecords.push(normalizeRawRecord(record));
-        }
-      } else {
-        rawRecords.push(normalizeRawRecord(parsed));
-      }
+      readCount += 1;
+      reportProgress(onProgress, {
+        phase: 'reading',
+        message: `Read ${readCount} of ${files.length} file${files.length === 1 ? '' : 's'}…`,
+        current: readCount,
+        total: files.length,
+      });
+      return batch;
+    }),
+  );
 
-      const cleaned = cleanRecords(rawRecords);
-      for (const record of cleaned) {
-        allRecords.push(record);
-      }
-    }
-  }
+  reportProgress(onProgress, {
+    phase: 'deduping',
+    message: 'Deduplicating and sorting plays…',
+  });
 
-  const deduped = dedupeRecords(allRecords);
+  const deduped = dedupeRecords(batches.flat());
 
   if (deduped.length === 0) {
     throw new Error(
       'No streaming records found. Use Extended Streaming History JSON files (Streaming_History_*.json), legacy endTime exports, or a Spotify data zip archive.',
     );
   }
+
+  reportProgress(onProgress, {
+    phase: 'done',
+    message: `Loaded ${deduped.length.toLocaleString()} plays.`,
+  });
 
   return deduped;
 }

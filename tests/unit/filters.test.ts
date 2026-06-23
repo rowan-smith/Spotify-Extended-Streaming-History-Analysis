@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createDefaultFilters,
   applyPreset,
+  buildWrappedFilters,
   getWrappedYear,
   filterRecords,
   countActiveFilters,
@@ -53,21 +54,24 @@ describe('applyPreset', () => {
     expect(result.topN).toBe(DEFAULT_TOP_N);
   });
 
-  it('applies wrapped preset', () => {
-    const current = createDefaultFilters(2020, 2024);
-    const result = applyPreset('wrapped', current, bounds);
-    expect(result.preset).toBe('wrapped');
-    expect(result.yearFrom).toBe(2024);
-    expect(result.yearTo).toBe(2024);
-    expect(result.includeMusic).toBe(true);
-    expect(result.includePodcasts).toBe(false);
-    expect(result.topN).toBe(WRAPPED_TOP_N);
-  });
-
   it('marks custom preset without changes', () => {
     const current = createDefaultFilters(2020, 2024);
     const result = applyPreset('custom', current, bounds);
     expect(result.preset).toBe('custom');
+  });
+});
+
+describe('buildWrappedFilters', () => {
+  it('applies Spotify Wrapped rules for a selected year', () => {
+    const result = buildWrappedFilters(bounds, 2023);
+    expect(result.yearFrom).toBe(2023);
+    expect(result.yearTo).toBe(2023);
+    expect(result.topN).toBe(WRAPPED_TOP_N);
+    expect(result.hideSkipped).toBe(true);
+    expect(result.excludeIncognito).toBe(true);
+    expect(result.minMsPlayedExclusive).toBe(true);
+    expect(result.includeMusic).toBe(true);
+    expect(result.includePodcasts).toBe(false);
   });
 });
 
@@ -182,8 +186,8 @@ describe('countActiveFilters', () => {
     expect(countActiveFilters(filters, bounds)).toBe(0);
   });
 
-  it('counts non-default preset', () => {
-    const filters = { ...createDefaultFilters(2020, 2024), preset: 'wrapped' as const };
+  it('counts custom preset', () => {
+    const filters = { ...createDefaultFilters(2020, 2024), preset: 'custom' as const };
     expect(countActiveFilters(filters, bounds)).toBeGreaterThan(0);
   });
 });
@@ -193,12 +197,6 @@ describe('shouldShowPaceMetrics', () => {
     const currentYear = new Date().getFullYear();
     const filters = createDefaultFilters(currentYear, currentYear);
     expect(shouldShowPaceMetrics(filters)).toBe(true);
-  });
-
-  it('returns false for wrapped preset', () => {
-    const currentYear = new Date().getFullYear();
-    const filters = { ...createDefaultFilters(currentYear, currentYear), preset: 'wrapped' as const };
-    expect(shouldShowPaceMetrics(filters)).toBe(false);
   });
 
   it('returns false for past years', () => {
@@ -222,15 +220,7 @@ describe('markCustomPreset', () => {
 });
 
 describe('applyQuickYearRange', () => {
-  it('wraps wrapped preset', () => {
-    const filters = { ...createDefaultFilters(2020, 2024), preset: 'wrapped' as const };
-    const result = applyQuickYearRange(filters, 2022, 2023);
-    expect(result.yearFrom).toBe(2022);
-    expect(result.yearTo).toBe(2023);
-    expect(result.preset).toBe('wrapped');
-  });
-
-  it('wraps default preset', () => {
+  it('keeps default preset rules', () => {
     const filters = createDefaultFilters(2020, 2024);
     const result = applyQuickYearRange(filters, 2021, 2022);
     expect(result.yearFrom).toBe(2021);

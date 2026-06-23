@@ -17,6 +17,20 @@ export function getWrappedYear(bounds: FilterBounds): number {
   return bounds.yearMax;
 }
 
+export function buildWrappedFilters(bounds: FilterBounds, year: number): AnalysisFilters {
+  const clampedYear = Math.max(bounds.yearMin, Math.min(bounds.yearMax, year));
+
+  return {
+    preset: 'custom',
+    mode: 'basic',
+    yearFrom: clampedYear,
+    yearTo: clampedYear,
+    search: '',
+    rankingMetric: 'plays',
+    ...PRESET_WRAPPED,
+  };
+}
+
 export function createDefaultFilters(yearMin: number, yearMax: number): AnalysisFilters {
   return {
     preset: 'default',
@@ -32,9 +46,6 @@ export function createDefaultFilters(yearMin: number, yearMax: number): Analysis
 }
 
 export function effectiveRankingMetric(filters: AnalysisFilters): RankingMetric {
-  if (filters.preset === 'wrapped') {
-    return 'plays';
-  }
   return filters.rankingMetric;
 }
 
@@ -47,18 +58,6 @@ export function applyPreset(
     return { ...current, preset: 'custom' };
   }
 
-  if (preset === 'wrapped') {
-    const wrappedYear = getWrappedYear(bounds);
-    return {
-      ...current,
-      preset: 'wrapped',
-      ...PRESET_WRAPPED,
-      rankingMetric: 'plays',
-      yearFrom: wrappedYear,
-      yearTo: wrappedYear,
-    };
-  }
-
   return {
     ...current,
     preset: 'default',
@@ -69,22 +68,12 @@ export function applyPreset(
   };
 }
 
-/** Update year range from the quick picker without dropping Default or Wrapped preset rules. */
+/** Update year range from the quick picker without dropping default preset rules. */
 export function applyQuickYearRange(
   filters: AnalysisFilters,
   yearFrom: number,
   yearTo: number,
 ): AnalysisFilters {
-  if (filters.preset === 'wrapped') {
-    return {
-      ...filters,
-      preset: 'wrapped',
-      ...PRESET_WRAPPED,
-      yearFrom,
-      yearTo,
-    };
-  }
-
   if (filters.preset === 'default') {
     return {
       ...filters,
@@ -105,7 +94,7 @@ export function applyQuickYearRange(
 }
 
 export function rankingsTopN(filters: AnalysisFilters): number {
-  return filters.preset === 'wrapped' ? DEFAULT_TOP_N : filters.topN;
+  return filters.topN;
 }
 
 function recordMonthIndex(record: StreamRecord): number {
@@ -300,10 +289,6 @@ export function countActiveFilters(
 }
 
 export function shouldShowPaceMetrics(filters: AnalysisFilters): boolean {
-  if (filters.preset === 'wrapped') {
-    return false;
-  }
-
   const currentYear = new Date().getFullYear();
   return filters.yearFrom === currentYear && filters.yearTo === currentYear;
 }

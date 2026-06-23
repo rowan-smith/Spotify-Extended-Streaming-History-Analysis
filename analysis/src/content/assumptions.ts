@@ -16,12 +16,12 @@ export const ASSUMPTIONS: Assumption[] = [
     body: 'By default only music rows are included. Podcast and audiobook rows can be enabled in advanced filters.',
   },
   {
-    title: 'Wrapped preset',
-    body: 'The Wrapped preset follows Spotify’s published rules where your export supports them: music only, Jan 1 through mid-November, more than 30 seconds per listen, skips and private sessions excluded, and rankings by play count. Spotify also weights featured artists differently and filters some non-music tracks — those cannot be replicated exactly from the export alone.',
+    title: 'Wrapped mode',
+    body: 'Wrapped mode applies Spotify’s published rules across the whole dashboard where your export supports them: music only, Jan 1 through mid-November of the selected year, more than 30 seconds per listen, skips and private sessions excluded, and rankings by play count on the Songs, Artists, and Albums tabs. Spotify also weights featured artists differently and filters some non-music tracks — those cannot be replicated exactly from the export alone.',
   },
   {
     title: 'Minimum play duration (filters)',
-    body: 'The default preset ignores plays under 30 seconds. The Wrapped preset requires more than 30 seconds, matching Spotify’s definition.',
+    body: 'The default filters ignore plays under 30 seconds. Wrapped mode requires more than 30 seconds, matching Spotify’s definition.',
   },
   {
     title: 'Timestamps and local time',
@@ -57,11 +57,11 @@ export const ASSUMPTIONS: Assumption[] = [
   },
   {
     title: 'Private sessions',
-    body: 'When incognito_mode is true in your export, the Wrapped preset excludes that play. Spotify Wrapped does not use private sessions for taste-based rankings.',
+    body: 'When incognito_mode is true in your export, Wrapped mode excludes that play. Spotify Wrapped does not use private sessions for taste-based rankings.',
   },
   {
     title: 'Skipped track',
-    body: 'skipped == true in the export. The Wrapped preset excludes these from rankings.',
+    body: 'skipped == true in the export. Wrapped mode excludes these from rankings.',
   },
   {
     title: 'Listening session',

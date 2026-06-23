@@ -1,6 +1,12 @@
 import JSZip from 'jszip';
 import { computeInsights } from './insights';
 import { computeSongMetrics, computeArtistMetrics, computeAlbumMetrics } from './domainMetrics';
+import {
+  buildDiscoveryDays,
+  buildDiscoveryHistory,
+  buildDayOfWeekDistribution,
+  buildSkipRankings,
+} from './exploration';
 import { normalizeRawRecord, parseTimestamp } from './normalizeRecord';
 import { sortSongs, sortArtists, sortAlbums, topSongs, topArtists, topAlbums, aggregateSongs, aggregateArtists, aggregateAlbums } from './aggregation';
 import { computeOverview } from './overview';
@@ -165,7 +171,11 @@ function dedupeRecords(records: StreamRecord[]): StreamRecord[] {
   return deduped.sort((a, b) => a.ts.getTime() - b.ts.getTime());
 }
 
-export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResult {
+export function analyzeRecords(
+  records: StreamRecord[],
+  topN = 10,
+  skipSourceRecords?: StreamRecord[],
+): AnalysisResult {
   const songMap = aggregateSongs(records);
   const artistMap = aggregateArtists(records);
   const albumMap = aggregateAlbums(records);
@@ -175,6 +185,8 @@ export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResu
   const availableYears = [...new Set(records.map((record) => record.ts.getUTCFullYear()))].sort(
     (a, b) => a - b,
   );
+  const skipRecords = skipSourceRecords ?? records;
+  const skipRankings = buildSkipRankings(skipRecords, topN);
 
   return {
     records,
@@ -204,6 +216,11 @@ export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResu
     hoursByMonth: buildMonthSeasonality(records, 'time'),
     playsByDayOfMonth: buildDayOfMonthSeasonality(records),
     playsByHour: buildHourDistribution(records),
+    playsByDayOfWeek: buildDayOfWeekDistribution(records),
+    mostSkippedSongs: skipRankings.mostSkipped,
+    leastSkippedSongs: skipRankings.leastSkipped,
+    discoveryHistory: buildDiscoveryHistory(records),
+    discoveryDays: buildDiscoveryDays(records, topN),
     topSongsByYear: buildTopByYear(records, 'songs', 'plays', topN),
     topSongsByYearByTime: buildTopByYear(records, 'songs', 'time', topN),
     topArtistsByYear: buildTopByYear(records, 'artists', 'plays', topN),

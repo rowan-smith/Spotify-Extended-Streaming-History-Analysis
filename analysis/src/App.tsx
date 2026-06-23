@@ -45,10 +45,16 @@ export default function App() {
     loading,
     error,
     isSampleData,
-    filterContext,
+    activeFilterContext,
     dashboardTabs,
-    filteredRecords,
-    analysis,
+    activeFilteredPlays,
+    activeAnalysis,
+    viewMode,
+    setViewMode,
+    isWrappedMode,
+    wrappedYear,
+    setWrappedYear,
+    wrappedYearOptions,
     handleFiltersChange,
     handleFilesSelected,
     handleSampleDataSelected,
@@ -156,14 +162,19 @@ export default function App() {
           <Suspense fallback={<ViewFallback />}>
             <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-6 min-w-0">
               <FilterBar
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                wrappedYear={wrappedYear}
+                wrappedYearOptions={wrappedYearOptions}
+                onWrappedYearChange={setWrappedYear}
                 filters={filters}
                 bounds={bounds}
-                filteredPlays={filteredRecords.length}
+                filteredPlays={activeFilteredPlays}
                 totalPlays={allRecords.length}
                 onChange={handleFiltersChange}
               />
 
-              {analysis ? (
+              {activeAnalysis ? (
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabId)}>
                   <div className="flex flex-col gap-3 mb-5 sm:mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -208,9 +219,11 @@ export default function App() {
                   </div>
 
                   <Dashboard
-                    analysis={analysis}
+                    analysis={activeAnalysis}
+                    isWrappedMode={isWrappedMode}
+                    wrappedYear={wrappedYear}
                     activeTab={activeTab}
-                    filterContext={filterContext}
+                    filterContext={activeFilterContext}
                     filters={filters}
                     theme={theme}
                     onFiltersChange={handleFiltersChange}
@@ -218,8 +231,9 @@ export default function App() {
                 </Tabs>
               ) : (
                 <p className="rounded-lg border border-border bg-muted px-4 py-8 text-center text-sm text-muted-foreground">
-                  No plays match your current filters. Try widening the date range or clearing
-                  search.
+                  {isWrappedMode
+                    ? `No plays match Wrapped rules for ${wrappedYear}.`
+                    : 'No plays match your current filters. Try widening the date range or clearing search.'}
                 </p>
               )}
             </div>

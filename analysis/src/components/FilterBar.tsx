@@ -6,7 +6,6 @@ import {
   WRAPPED_CUTOFF_MONTH,
 } from '../analysis/filterPresets';
 import {
-  applyPreset,
   applyQuickYearRange,
   countActiveFilters,
   createDefaultFilters,
@@ -14,24 +13,28 @@ import {
 } from '../analysis/filters';
 import {
   FILTER_OPTION_INFO,
-  FILTER_PRESET_INFO,
   SPOTIFY_NEWSROOM_WRAPPED,
   WRAPPED_LIMITATIONS,
 } from '../content/siteContent';
 import { monthName } from '../utils/formatting';
 import { cn } from '@/lib/utils';
-import type { AnalysisFilters, FilterBounds, RankingMetric } from '../types';
+import type { AnalysisFilters, FilterBounds, RankingMetric, RankingViewMode } from '../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { InfoTooltip } from './InfoTooltip';
 import { MetricTabs } from './charts/MetricTabs';
+import { RankingViewTabs } from './charts/RankingViewTabs';
 import { PLAYS_VS_TIME_INFO } from '../content/siteContent';
 
 interface FilterBarProps {
+  viewMode: RankingViewMode;
+  onViewModeChange: (mode: RankingViewMode) => void;
+  wrappedYear: number;
+  wrappedYearOptions: number[];
+  onWrappedYearChange: (year: number) => void;
   filters: AnalysisFilters;
   bounds: FilterBounds;
   filteredPlays: number;
@@ -71,29 +74,24 @@ function quickYearValue(
   return 'custom';
 }
 
-function wrappedYearLabel(filters: AnalysisFilters, bounds: FilterBounds): string {
-  const from = filters.yearFrom ?? bounds.yearMin;
-  const to = filters.yearTo ?? bounds.yearMax;
-
-  if (from === to) {
-    return `, ${from}`;
-  }
-
-  return ` (${from}–${to})`;
-}
-
 export function FilterBar({
+  viewMode,
+  onViewModeChange,
+  wrappedYear,
+  wrappedYearOptions,
+  onWrappedYearChange,
   filters,
   bounds,
   filteredPlays,
   totalPlays,
   onChange,
 }: FilterBarProps) {
+  const isWrappedMode = viewMode === 'wrapped';
   const years = yearOptions(bounds.yearMin, bounds.yearMax);
   const activeCount = countActiveFilters(filters, bounds);
   const [advancedOpen, setAdvancedOpen] = useState(readAdvancedOpen);
   const yearValue = quickYearValue(filters, bounds);
-  const advancedActiveCount = Math.max(0, activeCount - (filters.preset !== 'default' ? 1 : 0));
+  const advancedActiveCount = Math.max(0, activeCount - (filters.preset === 'custom' ? 1 : 0));
 
   function update(next: AnalysisFilters) {
     onChange(next.preset === 'custom' ? next : markCustomPreset(next));
@@ -128,98 +126,111 @@ export function FilterBar({
         <h2 className="text-lg font-semibold">Explore your data</h2>
         <p className="text-sm text-muted-foreground">
           Showing {filteredPlays.toLocaleString()} of {totalPlays.toLocaleString()} plays
-          {filters.preset === 'custom' ? ' · Custom filters' : null}
-          {activeCount > 0
+          {isWrappedMode ? ' · Wrapped mode' : null}
+          {!isWrappedMode && filters.preset === 'custom' ? ' · Custom filters' : null}
+          {!isWrappedMode && activeCount > 0
             ? ` · ${activeCount} active filter${activeCount === 1 ? '' : 's'}`
             : null}
         </p>
       </div>
 
       <div className="rounded-xl border border-border bg-muted/50 p-4">
-        <h3 className="text-sm font-medium text-foreground mb-3">Filters</h3>
-
-        <div className="sm:flex sm:flex-row sm:items-center sm:justify-between flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <ToggleGroup
-              value={[filters.preset]}
-              onValueChange={(value) => {
-                if (value.length > 0) onChange(applyPreset(value[0] as 'default' | 'wrapped', filters, bounds));
-              }}
-              aria-label="Filter preset"
-            >
-              {(['default', 'wrapped'] as const).map((preset) => (
-                <ToggleGroupItem
-                  key={preset}
-                  value={preset}
-                  className="h-10 sm:h-9 rounded-md text-xs"
-                >
-                  {preset === 'default' ? 'Default' : 'Wrapped'}
-                  <InfoTooltip text={FILTER_PRESET_INFO[preset]} label={`${preset} preset`} />
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <RankingViewTabs active={viewMode} onChange={onViewModeChange} />
+          {isWrappedMode ? (
             <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
-              <span className="font-medium text-foreground">Year</span>
+              <span className="font-medium text-foreground">Wrapped year</span>
               <Select
-                value={yearValue}
-                onChange={(event) => setQuickYear(event.target.value)}
-                aria-label="Year selection"
+                value={wrappedYear}
+                onChange={(event) => onWrappedYearChange(Number(event.target.value))}
+                aria-label="Wrapped year"
               >
-                <option value="all">
-                  All years ({bounds.yearMin}–{bounds.yearMax})
-                </option>
-                {years.map((year) => (
+                {wrappedYearOptions.map((year) => (
                   <option key={year} value={year}>
                     {year}
                   </option>
                 ))}
-                {yearValue === 'custom' ? <option value="custom">Custom range</option> : null}
               </Select>
             </label>
+          ) : null}
+        </div>
 
-            {filters.preset !== 'wrapped' ? (
-              <>
+        {isWrappedMode ? (
+          <div className="rounded-lg border border-border bg-muted px-4 py-3 text-xs text-muted-foreground">
+            <p>
+              Jan 1–{monthName(WRAPPED_CUTOFF_MONTH)} {WRAPPED_CUTOFF_DAY}, {wrappedYear}
+              {' · ranked by plays · private sessions excluded'}
+            </p>
+            <p className="mt-1 leading-relaxed">
+              {WRAPPED_LIMITATIONS}{' '}
+              <a href={SPOTIFY_NEWSROOM_WRAPPED} target="_blank" rel="noreferrer">
+                See how Spotify builds Wrapped.
+              </a>
+            </p>
+          </div>
+        ) : (
+          <>
+            <h3 className="text-sm font-medium text-foreground mb-3">Filters</h3>
+
+            <div className="sm:flex sm:flex-row sm:items-center sm:justify-between flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+                  <span className="font-medium text-foreground">Year</span>
+                  <Select
+                    value={yearValue}
+                    onChange={(event) => setQuickYear(event.target.value)}
+                    aria-label="Year selection"
+                  >
+                    <option value="all">
+                      All years ({bounds.yearMin}–{bounds.yearMax})
+                    </option>
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                    {yearValue === 'custom' ? <option value="custom">Custom range</option> : null}
+                  </Select>
+                </label>
+
                 <span className="hidden sm:block w-px h-6 bg-border shrink-0" aria-hidden="true" />
                 <MetricTabs
-                active={filters.rankingMetric}
-                onChange={(value: RankingMetric) =>
-                  update({ ...filters, rankingMetric: value })
-                }
-                playsInfo={PLAYS_VS_TIME_INFO.plays}
-                timeInfo={PLAYS_VS_TIME_INFO.time}
-              />
-              </>
-            ) : null}
-          </div>
+                  active={filters.rankingMetric}
+                  onChange={(value: RankingMetric) =>
+                    update({ ...filters, rankingMetric: value })
+                  }
+                  playsInfo={PLAYS_VS_TIME_INFO.plays}
+                  timeInfo={PLAYS_VS_TIME_INFO.time}
+                />
+              </div>
 
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onChange(createDefaultFilters(bounds.yearMin, bounds.yearMax))}
-              className="bg-transparent border-none hover:bg-transparent underline-offset-4 hover:underline"
-            >
-              Reset
-            </Button>
-            <span className="w-px h-4 bg-border" aria-hidden="true" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleAdvanced}
-              aria-expanded={advancedOpen}
-              className="bg-transparent border-none hover:bg-transparent group"
-            >
-              <span className={cn('underline-offset-4 group-hover:underline', advancedOpen ? 'text-accent' : 'text-foreground')}>
-                Advanced
-              </span>
-              <span className="text-xs ml-0.5">{advancedOpen ? '▴' : '▾'}</span>
-              {advancedActiveCount > 0 && !advancedOpen ? (
-                <Badge variant="accent">{advancedActiveCount}</Badge>
-              ) : null}
-            </Button>
-          </div>
-        </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onChange(createDefaultFilters(bounds.yearMin, bounds.yearMax))}
+                  className="bg-transparent border-none hover:bg-transparent underline-offset-4 hover:underline"
+                >
+                  Reset
+                </Button>
+                <span className="w-px h-4 bg-border" aria-hidden="true" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleAdvanced}
+                  aria-expanded={advancedOpen}
+                  className="bg-transparent border-none hover:bg-transparent group"
+                >
+                  <span className={cn('underline-offset-4 group-hover:underline', advancedOpen ? 'text-accent' : 'text-foreground')}>
+                    Advanced
+                  </span>
+                  <span className="text-xs ml-0.5">{advancedOpen ? '▴' : '▾'}</span>
+                  {advancedActiveCount > 0 && !advancedOpen ? (
+                    <Badge variant="accent">{advancedActiveCount}</Badge>
+                  ) : null}
+                </Button>
+              </div>
+            </div>
 
         {advancedOpen ? (
           <>
@@ -415,18 +426,9 @@ export function FilterBar({
             </div>
           </>
         ) : null}
+          </>
+        )}
       </div>
-
-      {filters.preset === 'wrapped' ? (
-        <div className="mt-3 rounded-lg border border-border bg-muted px-4 py-3 text-xs text-muted-foreground">
-          <p>
-            Jan 1–{monthName(WRAPPED_CUTOFF_MONTH)} {WRAPPED_CUTOFF_DAY}
-            {wrappedYearLabel(filters, bounds)}
-            {' · ranked by plays · private sessions excluded'}
-          </p>
-          <p className="mt-1 leading-relaxed">{WRAPPED_LIMITATIONS} <a href={SPOTIFY_NEWSROOM_WRAPPED} target="_blank" rel="noreferrer">See more here.</a></p>
-        </div>
-      ) : null}
     </section>
   );
 }

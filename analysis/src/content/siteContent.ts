@@ -12,13 +12,17 @@ export const SPOTIFY_NEWSROOM_WRAPPED = 'https://newsroom.spotify.com/2025-12-03
 export const FILTER_PRESET_INFO = {
   default:
     'A good starting point: music only, at least 30 seconds per track, and skips left out.',
-  wrapped:
-    'Matches Spotify Wrapped as closely as your export allows: music only, Jan 1–Nov 15 of the latest Wrapped year, more than 30 seconds per listen, skips and private sessions excluded, top 100 by play count.',
   custom: 'You set the filters yourself. Changing anything here switches to Custom.',
 } as const;
 
 export const WRAPPED_LIMITATIONS =
   'Approximation only. Spotify may also weight featured artists, filter ambient tracks, and honor Taste Profile settings — none of which appear in your export.';
+
+export const RANKING_VIEW_INFO = {
+  standard: 'Uses your global filters and ranks by plays or total playtime.',
+  wrapped:
+    'Matches Spotify Wrapped as closely as your export allows across every dashboard tab. Music only, Jan 1–Nov 15 of the selected year, more than 30 seconds per listen, skips and private sessions excluded, top 100 by play count on ranking tabs.',
+} as const;
 
 export const FILTER_OPTION_INFO = {
   hideSkipped:
@@ -91,6 +95,19 @@ export const PLAYS_VS_TIME_INFO = {
   plays:
     'Ranked by how many times you played something. A quick skip counts the same as a long listen.',
   time: 'Ranked by total listening time. Long sessions and repeats help a track rank higher.',
+} as const;
+
+export const DISCOVER_INFO = {
+  mostSkipped:
+    'Tracks you skipped the most in this date range. Skip rankings always include skipped plays, even when the hide-skips filter is on.',
+  leastSkipped:
+    'Tracks you rarely skip, with at least three plays in this range. Zero-skip favourites rank highest.',
+  discoveryHistory:
+    'The first time each track appeared in your filtered history, in chronological order.',
+  discoveryDays:
+    'Days when you heard the most new tracks for the first time within your current filters.',
+  dayOfWeek:
+    'Plays pooled by weekday across your filtered history, using your local time zone.',
 } as const;
 
 export const DATA_HANDLING_SECTIONS = [

@@ -5,6 +5,7 @@ import { formatHours } from '../../utils/formatting';
 import { MetricGrid } from '../MetricGrid';
 import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
+import { WrappedRankingsView } from '../charts/WrappedRankingsView';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
 import { DataTable } from '../DataTable';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
@@ -12,6 +13,8 @@ import type { AnalysisResult, RankingMetric } from '../../types';
 
 interface SongsTabProps {
   analysis: AnalysisResult;
+  isWrappedMode: boolean;
+  wrappedYear: number;
   topNLabel: number;
   years: number[];
   showYearlyTopBreakdown: boolean;
@@ -23,6 +26,8 @@ interface SongsTabProps {
 
 export function SongsTab({
   analysis,
+  isWrappedMode,
+  wrappedYear,
   topNLabel,
   years,
   showYearlyTopBreakdown,
@@ -47,6 +52,10 @@ export function SongsTab({
   );
 
   const title = `Top ${topNLabel} songs by ${rankingMetric === 'plays' ? 'plays' : 'playtime'}`;
+
+  if (isWrappedMode) {
+    return <WrappedRankingsView kind="songs" analysis={analysis} year={wrappedYear} />;
+  }
 
   return (
     <div className="grid gap-6 min-w-0">

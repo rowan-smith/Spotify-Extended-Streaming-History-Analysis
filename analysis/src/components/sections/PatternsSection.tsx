@@ -96,6 +96,24 @@ export function PatternsSection({
             points={analysis.playsByHour}
             pointsValueLabel="Plays"
           />
+
+          <PlotlyCard
+            title="Plays by day of week (local time)"
+            subtitle="All Mondays, Tuesdays, etc. pooled across your filtered history, in your local time zone."
+            data={[
+              verticalBarChart(
+                analysis.playsByDayOfWeek.map((point) => point.label),
+                analysis.playsByDayOfWeek.map((point) => point.value),
+                analysis.playsByDayOfWeek.map((point) => point.topItem ?? ''),
+                'Plays',
+              ),
+            ]}
+            layout={{ xaxis: { title: { text: 'Weekday' } }, yaxis: { title: { text: 'Plays' } } }}
+            theme={theme}
+            height={360}
+            points={analysis.playsByDayOfWeek}
+            pointsValueLabel="Plays"
+          />
         </>
       ) : null}
 

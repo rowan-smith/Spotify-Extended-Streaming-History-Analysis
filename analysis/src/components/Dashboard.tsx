@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { lineChart } from '../charts/plotHelpers';
 import { shouldShowPaceMetrics, effectiveRankingMetric, shouldShowYearlyTopBreakdown } from '../analysis/filters';
+import { getSummaryInsights } from '../analysis/insights';
 import { sortArtists, sortSongs } from '../analysis/aggregation';
 import { formatDuration, formatHours, formatLocalDate, formatLocalDateTime } from '../utils/formatting';
 import { METRIC_INFO } from '../content/siteContent';
@@ -17,13 +18,13 @@ import { PlotlyCard } from './charts/PlotlyCard';
 import { StatCard } from './StatCard';
 import { InfoTooltip } from './InfoTooltip';
 import { Card, CardContent } from '@/components/ui/card';
-import { WrappedTab } from './tabs/WrappedTab';
 import { ActivitySection } from './sections/ActivitySection';
 import { BookendsSection } from './sections/BookendsSection';
 import { PatternsSection } from './sections/PatternsSection';
 import { SongsTab } from './tabs/SongsTab';
 import { ArtistsTab } from './tabs/ArtistsTab';
 import { AlbumsTab } from './tabs/AlbumsTab';
+import { DiscoverTab } from './tabs/DiscoverTab';
 import { DataTable } from './DataTable';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FILTER_OPTION_INFO } from '../content/siteContent';
@@ -36,6 +37,8 @@ import type { StreamRecord } from '../types';
 
 interface DashboardProps {
   analysis: AnalysisResult;
+  isWrappedMode: boolean;
+  wrappedYear: number;
   activeTab: TabId;
   filterContext: FilterContext;
   filters: AnalysisFilters;
@@ -303,6 +306,8 @@ function LongestListensCard({
 
 export function Dashboard({
   analysis,
+  isWrappedMode,
+  wrappedYear,
   activeTab,
   filterContext,
   filters,
@@ -315,7 +320,20 @@ export function Dashboard({
   const isCompact = useMediaQuery('(max-width: 640px)');
   const showMultiYearCharts = !filterContext.singleYear;
   const showYearlyTopBreakdown = shouldShowYearlyTopBreakdown(filterContext, years);
-  const rankingMetric = effectiveRankingMetric(filters);
+  const rankingMetric = isWrappedMode ? 'plays' : effectiveRankingMetric(filters);
+  const summaryInsights = useMemo(() => getSummaryInsights(analysis.insights), [analysis.insights]);
+  const rankingTabProps = {
+    isWrappedMode,
+    wrappedYear,
+    topNLabel,
+    years,
+    showMultiYearCharts,
+    showYearlyTopBreakdown,
+    spanLabel: filterContext.spanLabel,
+    rankingMetric,
+    theme,
+    compact: isCompact,
+  };
 
   if (activeTab === 'summary') {
     return (
@@ -387,7 +405,7 @@ export function Dashboard({
           </div>
         </section>
 
-        {shouldShowPaceMetrics(filters) && (overview.paceVsLastYear || overview.beatRecord) ? (
+        {shouldShowPaceMetrics(filters) && !isWrappedMode && (overview.paceVsLastYear || overview.beatRecord) ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {overview.paceVsLastYear ? (
               <Card>
@@ -413,63 +431,48 @@ export function Dashboard({
             ) : null}
           </div>
         ) : null}
+
+        {summaryInsights.length > 0 ? (
+          <section>
+            <h3 className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">Highlights</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              {isWrappedMode
+                ? 'Standout patterns from your Wrapped window.'
+                : 'Standout patterns from your filtered history.'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0">
+              {summaryInsights.map((fact) => (
+                <Card key={fact.title}>
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">{fact.title}</p>
+                    <p className="text-base font-bold mt-1 break-words">{fact.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{fact.detail}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     );
   }
 
-  if (activeTab === 'wrapped') {
-    return <WrappedTab songs={analysis.allSongs} spanLabel={filterContext.spanLabel} />;
-  }
-
   if (activeTab === 'songs') {
-    return (
-      <SongsTab
-        analysis={analysis}
-        topNLabel={topNLabel}
-        years={years}
-        showYearlyTopBreakdown={showYearlyTopBreakdown}
-        spanLabel={filterContext.spanLabel}
-        rankingMetric={rankingMetric}
-        theme={theme}
-        compact={isCompact}
-      />
-    );
+    return <SongsTab analysis={analysis} {...rankingTabProps} />;
   }
 
   if (activeTab === 'artists') {
-    return (
-      <ArtistsTab
-        analysis={analysis}
-        topNLabel={topNLabel}
-        years={years}
-        showYearlyTopBreakdown={showYearlyTopBreakdown}
-        spanLabel={filterContext.spanLabel}
-        rankingMetric={rankingMetric}
-        theme={theme}
-        compact={isCompact}
-      />
-    );
+    return <ArtistsTab analysis={analysis} {...rankingTabProps} />;
   }
 
   if (activeTab === 'albums') {
-    return (
-      <AlbumsTab
-        analysis={analysis}
-        topNLabel={topNLabel}
-        years={years}
-        showYearlyTopBreakdown={showYearlyTopBreakdown}
-        spanLabel={filterContext.spanLabel}
-        rankingMetric={rankingMetric}
-        theme={theme}
-        compact={isCompact}
-      />
-    );
+    return <AlbumsTab analysis={analysis} {...rankingTabProps} />;
   }
 
   if (activeTab === 'habits') {
     return (
       <div className="grid gap-6">
-        <ActivitySection overview={overview} filters={filters} />
+        <ActivitySection overview={overview} filters={filters} isWrappedMode={isWrappedMode} />
         <BookendsSection overview={overview} />
         <PatternsSection
           analysis={analysis}
@@ -478,6 +481,17 @@ export function Dashboard({
           showYearlyTopBreakdown={showYearlyTopBreakdown}
         />
       </div>
+    );
+  }
+
+  if (activeTab === 'discover') {
+    return (
+      <DiscoverTab
+        analysis={analysis}
+        topNLabel={topNLabel}
+        theme={theme}
+        compact={isCompact}
+      />
     );
   }
 
@@ -577,7 +591,7 @@ export function Dashboard({
 
     return (
       <div className="grid gap-6">
-        {filters.preset !== 'wrapped' ? (
+        {!isWrappedMode ? (
           <>
             <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
               <Checkbox

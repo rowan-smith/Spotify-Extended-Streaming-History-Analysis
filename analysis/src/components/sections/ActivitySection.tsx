@@ -6,10 +6,11 @@ import { StatCard } from '../StatCard';
 interface ActivitySectionProps {
   overview: AnalysisResult['overview'];
   filters: AnalysisFilters;
+  isWrappedMode: boolean;
 }
 
-export function ActivitySection({ overview, filters }: ActivitySectionProps) {
-  const showSkipMetrics = !filters.hideSkipped;
+export function ActivitySection({ overview, filters, isWrappedMode }: ActivitySectionProps) {
+  const showSkipMetrics = !isWrappedMode && !filters.hideSkipped;
   const completionTotal = overview.totalCompleted + overview.totalSkipped;
   const completionPct =
     completionTotal > 0 ? Math.round((overview.totalCompleted / completionTotal) * 100) : 100;

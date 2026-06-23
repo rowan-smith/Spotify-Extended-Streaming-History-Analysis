@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  buildWrappedFilters,
   createDefaultFilters,
   filterRecords,
   getFilterContext,
+  getWrappedYear,
   rankingsTopN,
 } from '../analysis/filters';
+import { WRAPPED_TOP_N } from '../analysis/filterPresets';
 import { analyzeRecords, loadRecordsFromFiles } from '../analysis/processData';
-import { getDashboardTabs } from '../content/dashboardTabs';
-import type { AnalysisFilters, AppView, StreamRecord, TabId } from '../types';
+import { DASHBOARD_TABS } from '../content/dashboardTabs';
+import type { AnalysisFilters, AppView, RankingViewMode, StreamRecord, TabId } from '../types';
 
 export function useAnalysis() {
   const [view, setView] = useState<AppView>('landing');
@@ -16,33 +19,67 @@ export function useAnalysis() {
   const [bounds, setBounds] = useState({ yearMin: 0, yearMax: 0 });
   const [filters, setFilters] = useState<AnalysisFilters>(createDefaultFilters(0, 0));
   const [activeTab, setActiveTab] = useState<TabId>('summary');
+  const [viewMode, setViewMode] = useState<RankingViewMode>('standard');
+  const [wrappedYear, setWrappedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSampleData, setIsSampleData] = useState(false);
 
+  const isWrappedMode = viewMode === 'wrapped';
   const filterContext = useMemo(() => getFilterContext(filters), [filters]);
-  const dashboardTabs = useMemo(() => getDashboardTabs(filters.preset), [filters.preset]);
+  const wrappedFilters = useMemo(
+    () => buildWrappedFilters(bounds, wrappedYear),
+    [bounds, wrappedYear],
+  );
+  const wrappedFilterContext = useMemo(
+    () => getFilterContext(wrappedFilters),
+    [wrappedFilters],
+  );
+  const wrappedYearOptions = useMemo(() => {
+    const years: number[] = [];
+    for (let year = bounds.yearMin; year <= bounds.yearMax; year += 1) {
+      years.push(year);
+    }
+    return years;
+  }, [bounds.yearMax, bounds.yearMin]);
 
   const filteredRecords = useMemo(
     () => filterRecords(allRecords, filters),
     [allRecords, filters],
   );
 
+  const skipSourceRecords = useMemo(
+    () => filterRecords(allRecords, { ...filters, hideSkipped: false }),
+    [allRecords, filters],
+  );
+
+  const wrappedRecords = useMemo(
+    () => filterRecords(allRecords, wrappedFilters),
+    [allRecords, wrappedFilters],
+  );
+
+  const wrappedSkipSourceRecords = useMemo(
+    () => filterRecords(allRecords, { ...wrappedFilters, hideSkipped: false }),
+    [allRecords, wrappedFilters],
+  );
+
   const analysis = useMemo(() => {
     if (filteredRecords.length === 0) {
       return null;
     }
-    return analyzeRecords(filteredRecords, rankingsTopN(filters));
-  }, [filteredRecords, filters]);
+    return analyzeRecords(filteredRecords, rankingsTopN(filters), skipSourceRecords);
+  }, [filteredRecords, filters, skipSourceRecords]);
 
-  function handleFiltersChange(next: AnalysisFilters) {
-    if (next.preset === 'wrapped' && filters.preset !== 'wrapped') {
-      setActiveTab('wrapped');
-    } else if (next.preset !== 'wrapped' && filters.preset === 'wrapped') {
-      setActiveTab((tab) => (tab === 'wrapped' ? 'summary' : tab));
+  const wrappedAnalysis = useMemo(() => {
+    if (wrappedRecords.length === 0) {
+      return null;
     }
-    setFilters(next);
-  }
+    return analyzeRecords(wrappedRecords, WRAPPED_TOP_N, wrappedSkipSourceRecords);
+  }, [wrappedRecords, wrappedSkipSourceRecords]);
+
+  const activeAnalysis = isWrappedMode ? wrappedAnalysis : analysis;
+  const activeFilterContext = isWrappedMode ? wrappedFilterContext : filterContext;
+  const activeFilteredPlays = isWrappedMode ? wrappedRecords.length : filteredRecords.length;
 
   const prefetchDashboardBundle = useCallback(() => {
     void import('../components/Dashboard');
@@ -86,10 +123,13 @@ export function useAnalysis() {
     const yearMin = sorted[0]?.ts.getUTCFullYear() ?? new Date().getFullYear();
     const yearMax =
       sorted[sorted.length - 1]?.ts.getUTCFullYear() ?? new Date().getFullYear();
+    const nextBounds = { yearMin, yearMax };
 
     setAllRecords(sorted);
-    setBounds({ yearMin, yearMax });
+    setBounds(nextBounds);
     setFilters(createDefaultFilters(yearMin, yearMax));
+    setWrappedYear(getWrappedYear(nextBounds));
+    setViewMode('standard');
     setActiveTab('summary');
     setIsSampleData(sample);
     setView('dashboard');
@@ -135,6 +175,7 @@ export function useAnalysis() {
     setAllRecords([]);
     setError(null);
     setIsSampleData(false);
+    setViewMode('standard');
     setActiveTab('summary');
     setView('landing');
   }
@@ -154,14 +195,20 @@ export function useAnalysis() {
     filters,
     activeTab,
     setActiveTab,
+    viewMode,
+    setViewMode,
+    isWrappedMode,
+    wrappedYear,
+    setWrappedYear,
+    wrappedYearOptions,
     loading,
     error,
     isSampleData,
-    filterContext,
-    dashboardTabs,
-    filteredRecords,
-    analysis,
-    handleFiltersChange,
+    activeFilterContext,
+    dashboardTabs: DASHBOARD_TABS,
+    activeFilteredPlays,
+    activeAnalysis,
+    handleFiltersChange: setFilters,
     handleFilesSelected,
     handleSampleDataSelected,
     resetAnalysis,

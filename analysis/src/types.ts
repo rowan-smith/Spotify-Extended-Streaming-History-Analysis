@@ -135,7 +135,29 @@ export interface YearSeries {
   points: TimelinePoint[];
 }
 
-export type FilterPreset = 'default' | 'wrapped' | 'custom';
+export interface SongSkipStats {
+  trackName: string;
+  artistName: string;
+  totalPlays: number;
+  skipCount: number;
+  skipRate: number;
+}
+
+export interface DiscoveryEntry {
+  trackName: string;
+  artistName: string;
+  discoveredAt: Date;
+}
+
+export interface DiscoveryDayStats {
+  day: string;
+  discoveries: number;
+  topDiscovery: string;
+}
+
+export type FilterPreset = 'default' | 'custom';
+
+export type RankingViewMode = 'standard' | 'wrapped';
 export type FilterMode = 'basic' | 'advanced';
 export type RankingMetric = 'plays' | 'time';
 
@@ -200,6 +222,11 @@ export interface AnalysisResult {
   hoursByMonth: TimelinePoint[];
   playsByDayOfMonth: TimelinePoint[];
   playsByHour: TimelinePoint[];
+  playsByDayOfWeek: TimelinePoint[];
+  mostSkippedSongs: SongSkipStats[];
+  leastSkippedSongs: SongSkipStats[];
+  discoveryHistory: DiscoveryEntry[];
+  discoveryDays: DiscoveryDayStats[];
   topSongsByYear: Record<number, SongStats[]>;
   topSongsByYearByTime: Record<number, SongStats[]>;
   topArtistsByYear: Record<number, ArtistStats[]>;
@@ -211,7 +238,15 @@ export interface AnalysisResult {
 
 export type SortMetric = 'plays' | 'time' | 'combined';
 
-export type TabId = 'summary' | 'wrapped' | 'songs' | 'artists' | 'albums' | 'timeline' | 'habits' | 'browse';
+export type TabId =
+  | 'summary'
+  | 'songs'
+  | 'artists'
+  | 'albums'
+  | 'timeline'
+  | 'habits'
+  | 'discover'
+  | 'browse';
 
 export type AppView =
   | 'landing'

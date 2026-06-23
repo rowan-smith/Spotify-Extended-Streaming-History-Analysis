@@ -1,5 +1,11 @@
-import type { OverviewStats, StreamRecord } from '../types';
-import { formatHourLabelLocal } from '../utils/formatting';
+import type { LongestStreak, OverviewStats, StreamRecord } from '../types';
+import {
+  favoriteMonthFromRecords,
+  favoriteWeekdayFromRecords,
+  formatHistorySpan,
+  formatHourLabelLocal,
+} from '../utils/formatting';
+import { computeLongestStreak } from './insightHelpers';
 
 export const SESSION_GAP_MS = 30 * 60 * 1000;
 
@@ -130,6 +136,10 @@ export function computeOverview(records: StreamRecord[]): OverviewStats {
   const dayCount = new Set(records.map((record) => localDateKey(record.ts))).size;
   const fallbackYear = new Date().getFullYear();
   const future = computeFutureMetrics(records);
+  const yearMin = records[0]?.ts.getUTCFullYear() ?? fallbackYear;
+  const yearMax = records[records.length - 1]?.ts.getUTCFullYear() ?? fallbackYear;
+  const streak = computeLongestStreak(records);
+  const longestStreak: LongestStreak | null = streak.days > 1 ? streak : null;
 
   return {
     totalPlays: records.length,
@@ -138,8 +148,12 @@ export function computeOverview(records: StreamRecord[]): OverviewStats {
     uniqueArtists: uniqueArtists.size,
     earliest: records[0] ?? null,
     latest: records[records.length - 1] ?? null,
-    yearMin: records[0]?.ts.getUTCFullYear() ?? fallbackYear,
-    yearMax: records[records.length - 1]?.ts.getUTCFullYear() ?? fallbackYear,
+    yearMin,
+    yearMax,
+    historySpanLabel: formatHistorySpan(yearMin, yearMax),
+    favoriteMonth: favoriteMonthFromRecords(records),
+    favoriteWeekday: favoriteWeekdayFromRecords(records),
+    longestStreak,
     totalCompleted: completed,
     totalSkipped: skipped,
     avgCompletedPerDay:

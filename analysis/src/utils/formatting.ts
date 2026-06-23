@@ -64,6 +64,53 @@ export function formatDuration(ms: number): string {
   return `${seconds}s`;
 }
 
+export function formatHistorySpan(yearMin: number, yearMax: number): string {
+  const spanYears = yearMax - yearMin + 1;
+  const yearLabel = spanYears === 1 ? 'year' : 'years';
+  if (yearMin === yearMax) {
+    return `${yearMin} (1 year)`;
+  }
+  return `${yearMin} – ${yearMax} (${spanYears} ${yearLabel})`;
+}
+
+const WEEKDAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+export function favoriteWeekdayFromRecords(records: { ts: Date }[]): string {
+  if (records.length === 0) {
+    return '—';
+  }
+
+  const weekdayCounts = Array.from({ length: 7 }, () => 0);
+  for (const record of records) {
+    weekdayCounts[record.ts.getDay()] += 1;
+  }
+
+  const peakWeekday = weekdayCounts.indexOf(Math.max(...weekdayCounts));
+  return WEEKDAY_NAMES[peakWeekday];
+}
+
+export function favoriteMonthFromRecords(records: { ts: Date }[]): string {
+  if (records.length === 0) {
+    return '—';
+  }
+
+  const monthCounts = Array.from({ length: 12 }, () => 0);
+  for (const record of records) {
+    monthCounts[record.ts.getMonth()] += 1;
+  }
+
+  const peakMonthIndex = monthCounts.indexOf(Math.max(...monthCounts));
+  return monthName(peakMonthIndex + 1);
+}
+
 export function formatHours(hours: number): string {
   if (hours < 1) {
     return `${Math.round(hours * 60)} min`;

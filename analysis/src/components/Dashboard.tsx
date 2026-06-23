@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { lineChart } from '../charts/plotHelpers';
 import { shouldShowPaceMetrics } from '../analysis/filters';
-import { getSummaryInsights } from '../analysis/insights';
-import { formatDuration, formatHours, formatLocalDateTime } from '../utils/formatting';
+import { formatDuration, formatHours, formatLocalDate, formatLocalDateTime } from '../utils/formatting';
 import { METRIC_INFO } from '../content/siteContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Theme } from '../hooks/useTheme';
@@ -285,14 +284,13 @@ export function Dashboard({
   const topNLabel = analysis.topSongsByPlays.length;
   const isCompact = useMediaQuery('(max-width: 640px)');
   const showMultiYearCharts = !filterContext.singleYear;
-  const summaryInsights = useMemo(() => getSummaryInsights(analysis.insights), [analysis.insights]);
 
   if (activeTab === 'summary') {
     return (
       <div className="grid gap-6">
         <section>
           <h3 className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">At a glance</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-0">
             <StatCard
               variant="hero"
               label="Total plays"
@@ -318,17 +316,40 @@ export function Dashboard({
               info={METRIC_INFO.uniqueArtists}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 min-w-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-2 min-w-0">
             <StatCard
+              variant="compact"
               label="History span"
-              value={`${overview.yearMin} – ${overview.yearMax}`}
+              value={overview.historySpanLabel}
               info={METRIC_INFO.historySpan}
             />
             <StatCard
-              label="Peak hour (local)"
-              value={overview.peakHourLabel}
-              info={METRIC_INFO.peakHour}
+              variant="compact"
+              label="Favourite month"
+              value={overview.favoriteMonth}
+              info={METRIC_INFO.favoriteMonth}
             />
+            <StatCard
+              variant="compact"
+              label="Favourite day"
+              value={overview.favoriteWeekday}
+              info={METRIC_INFO.favoriteWeekday}
+            />
+            <StatCard
+              variant="compact"
+              label="Favourite hour"
+              value={overview.peakHourLabel}
+              info={METRIC_INFO.favoriteHour}
+            />
+            {overview.longestStreak ? (
+              <StatCard
+                variant="compact"
+                label="Listening streak"
+                value={`${overview.longestStreak.days} days`}
+                hint={`${formatLocalDate(new Date(`${overview.longestStreak.start}T12:00:00`))} – ${formatLocalDate(new Date(`${overview.longestStreak.end}T12:00:00`))}`}
+                info={METRIC_INFO.longestStreak}
+              />
+            ) : null}
           </div>
         </section>
 
@@ -357,26 +378,6 @@ export function Dashboard({
               </Card>
             ) : null}
           </div>
-        ) : null}
-
-        {summaryInsights.length > 0 ? (
-          <section>
-            <h3 className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">Highlights</h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Standout patterns from your filtered history.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0">
-              {summaryInsights.map((fact) => (
-                <Card key={fact.title}>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">{fact.title}</p>
-                    <p className="text-base font-bold mt-1 break-words">{fact.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{fact.detail}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
         ) : null}
       </div>
     );

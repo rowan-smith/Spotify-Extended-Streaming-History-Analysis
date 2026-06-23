@@ -45,7 +45,11 @@ export const METRIC_INFO = {
   uniqueSongs:
     'Different tracks in your results. The same song by the same artist counts once.',
   uniqueArtists: 'Different artists in your results.',
-  historySpan: 'From your earliest to your latest play in this date range.',
+  historySpan: 'From your earliest to your latest play in this date range, with total years covered.',
+  favoriteMonth: 'The calendar month you played music most often, using your local time zone.',
+  favoriteWeekday: 'The day of the week you listen most, using your local time zone.',
+  favoriteHour: 'The hour of the day you listen most, in your local time zone.',
+  longestStreak: 'The longest run of consecutive days where you listened at least once.',
   peakHour: 'The hour of the day you listen most, in your local time zone.',
   completedListens: 'Tracks you listened to all the way through, according to Spotify.',
   skippedPlays: 'Tracks you skipped before they finished.',
@@ -63,6 +67,24 @@ export const METRIC_INFO = {
     'How this year compares to the same point last year. Shows the daily pace you would need to match last year’s total.',
   beatRecord:
     'The daily play count you would need for the rest of this year to beat your best year ever.',
+  mostRepeatedTrack: 'The song you played the most times in this filtered range.',
+  discoveryRate: 'Share of unique tracks you only played once in this filtered set.',
+  skipMood: 'How often you skip tracks compared to finishing them.',
+  topSongShare: 'What share of all your plays went to your #1 most-played song.',
+  avgPlaysPerSong: 'Average number of plays per unique track.',
+  bestDiscoveryDay: 'The day you heard the most new tracks for the first time.',
+  biggestBingeDay: 'Your highest single-day play count.',
+  seasonalFavorite: 'The track that peaks in one season more than any other.',
+  topArtistByPlays: 'The artist with the most plays in this range.',
+  topArtistByTime: 'The artist you spent the most time listening to.',
+  topArtistShare: 'What share of all your plays went to your #1 artist.',
+  avgPlaysPerArtist: 'Average number of plays per unique artist.',
+  mostArtistsInOneDay: 'The day you listened to the widest variety of artists.',
+  uniqueAlbums: 'Different albums in your results.',
+  topAlbumByPlays: 'The album with the most plays in this range.',
+  topAlbumByTime: 'The album you spent the most time listening to.',
+  topAlbumShare: 'What share of all your plays went to your #1 album.',
+  avgPlaysPerAlbum: 'Average number of plays per unique album.',
 } as const;
 
 export const PLAYS_VS_TIME_INFO = {

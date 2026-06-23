@@ -57,6 +57,12 @@ export interface AlbumStats {
   totalHours: number;
 }
 
+export interface LongestStreak {
+  days: number;
+  start: string;
+  end: string;
+}
+
 export interface OverviewStats {
   totalPlays: number;
   totalHours: number;
@@ -66,6 +72,10 @@ export interface OverviewStats {
   latest: StreamRecord | null;
   yearMin: number;
   yearMax: number;
+  historySpanLabel: string;
+  favoriteMonth: string;
+  favoriteWeekday: string;
+  longestStreak: LongestStreak | null;
   totalCompleted: number;
   totalSkipped: number;
   avgCompletedPerDay: number;
@@ -76,6 +86,35 @@ export interface OverviewStats {
   peakHourLabel: string;
   paceVsLastYear: string | null;
   beatRecord: string | null;
+}
+
+export interface SongMetrics {
+  uniqueSongs: number;
+  avgPlaysPerSong: number;
+  mostRepeatedTrack: { trackName: string; artistName: string; plays: number } | null;
+  discoveryRate: number;
+  skipMood: { label: string; detail: string };
+  bestDiscoveryDay: { day: string; discoveries: number; topDiscovery: string } | null;
+  biggestBingeDay: { day: string; plays: number; topTrack: string } | null;
+  seasonalFavorite: { trackName: string; season: string; plays: number } | null;
+  topSongShare: number;
+}
+
+export interface ArtistMetrics {
+  uniqueArtists: number;
+  topByPlays: { artistName: string; plays: number; hours: number } | null;
+  topByTime: { artistName: string; plays: number; hours: number } | null;
+  topArtistShare: number;
+  avgPlaysPerArtist: number;
+  mostArtistsInOneDay: { day: string; count: number } | null;
+}
+
+export interface AlbumMetrics {
+  uniqueAlbums: number;
+  topByPlays: { albumName: string; artistName: string; plays: number; hours: number } | null;
+  topByTime: { albumName: string; artistName: string; plays: number; hours: number } | null;
+  topAlbumShare: number;
+  avgPlaysPerAlbum: number;
 }
 
 export interface InsightFact {
@@ -135,6 +174,9 @@ export interface AnalysisResult {
   records: StreamRecord[];
   overview: OverviewStats;
   insights: InsightFact[];
+  songMetrics: SongMetrics;
+  artistMetrics: ArtistMetrics;
+  albumMetrics: AlbumMetrics;
   allSongs: SongStats[];
   allArtists: ArtistStats[];
   allAlbums: AlbumStats[];

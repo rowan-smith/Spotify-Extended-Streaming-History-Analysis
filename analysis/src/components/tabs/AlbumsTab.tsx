@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { buildAlbumMetricItems } from '../../analysis/metricDisplay';
 import { PLAYS_VS_TIME_INFO } from '../../content/siteContent';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
+import { MetricGrid } from '../MetricGrid';
 import { MetricTabs } from '../charts/MetricTabs';
 import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
@@ -38,10 +40,20 @@ export function AlbumsTab({
     resetChartView,
   } = useVisualizationView(compact);
 
+  const albumMetrics = useMemo(
+    () => buildAlbumMetricItems(analysis.albumMetrics),
+    [analysis.albumMetrics],
+  );
+
   const title = `Top ${topNLabel} albums by ${metric === 'plays' ? 'plays' : 'playtime'}`;
 
   return (
     <div className="grid gap-6 min-w-0">
+      <MetricGrid
+        title="Album metrics"
+        subtitle="Album-level patterns from your filtered history."
+        metrics={albumMetrics}
+      />
       <MetricTabs
         active={metric}
         onChange={setMetric}

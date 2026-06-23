@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { computeInsights } from './insights';
+import { computeSongMetrics, computeArtistMetrics, computeAlbumMetrics } from './domainMetrics';
 import { normalizeRawRecord, parseTimestamp } from './normalizeRecord';
 import { sortSongs, sortArtists, sortAlbums, topSongs, topArtists, topAlbums, aggregateSongs, aggregateArtists, aggregateAlbums } from './aggregation';
 import { computeOverview } from './overview';
@@ -179,6 +180,9 @@ export function analyzeRecords(records: StreamRecord[], topN = 10): AnalysisResu
     records,
     overview: computeOverview(records),
     insights: computeInsights(records),
+    songMetrics: computeSongMetrics(records, allSongs),
+    artistMetrics: computeArtistMetrics(records, allArtists),
+    albumMetrics: computeAlbumMetrics(records, allAlbums),
     allSongs,
     allArtists,
     allAlbums,

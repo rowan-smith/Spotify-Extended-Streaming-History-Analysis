@@ -10,22 +10,22 @@ export const DASHBOARD_TABS: DashboardTab[] = [
   {
     id: 'summary',
     label: 'Summary',
-    description: 'Headline stats and highlights from your filtered history.',
+    description: 'Top-level glance at your listening: totals, span, and when you listen most.',
   },
   {
     id: 'songs',
     label: 'Songs',
-    description: 'Top songs by plays or playtime, with optional yearly drill-down.',
+    description: 'Song metrics, top tracks by plays or playtime, and yearly drill-down.',
   },
   {
     id: 'artists',
     label: 'Artists',
-    description: 'Top artists by plays or playtime, with optional yearly drill-down.',
+    description: 'Artist metrics, top artists by plays or playtime, and yearly drill-down.',
   },
   {
     id: 'albums',
     label: 'Albums',
-    description: 'Top albums by plays or playtime, with optional yearly drill-down.',
+    description: 'Album metrics, top albums by plays or playtime, and yearly drill-down.',
   },
   {
     id: 'timeline',

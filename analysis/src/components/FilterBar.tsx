@@ -19,7 +19,8 @@ import {
   WRAPPED_LIMITATIONS,
 } from '../content/siteContent';
 import { monthName } from '../utils/formatting';
-import type { AnalysisFilters, FilterBounds } from '../types';
+import { cn } from '@/lib/utils';
+import type { AnalysisFilters, FilterBounds, RankingMetric } from '../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
@@ -27,7 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { InfoTooltip } from './InfoTooltip';
-import { cn } from '@/lib/utils';
+import { MetricTabs } from './charts/MetricTabs';
+import { PLAYS_VS_TIME_INFO } from '../content/siteContent';
 
 interface FilterBarProps {
   filters: AnalysisFilters;
@@ -175,6 +177,17 @@ export function FilterBar({
                 {yearValue === 'custom' ? <option value="custom">Custom range</option> : null}
               </Select>
             </label>
+
+            {filters.preset !== 'wrapped' ? (
+              <MetricTabs
+                active={filters.rankingMetric}
+                onChange={(value: RankingMetric) =>
+                  update({ ...filters, rankingMetric: value })
+                }
+                playsInfo={PLAYS_VS_TIME_INFO.plays}
+                timeInfo={PLAYS_VS_TIME_INFO.time}
+              />
+            ) : null}
           </div>
 
           <div className="flex items-center gap-1.5">

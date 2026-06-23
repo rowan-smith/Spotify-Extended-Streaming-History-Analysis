@@ -137,6 +137,7 @@ export interface YearSeries {
 
 export type FilterPreset = 'default' | 'wrapped' | 'custom';
 export type FilterMode = 'basic' | 'advanced';
+export type RankingMetric = 'plays' | 'time';
 
 export interface AnalysisFilters {
   preset: FilterPreset;
@@ -157,6 +158,7 @@ export interface AnalysisFilters {
   includePodcasts: boolean;
   includeAudiobooks: boolean;
   combineRanking: boolean;
+  rankingMetric: RankingMetric;
 }
 
 export interface FilterBounds {

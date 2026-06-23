@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { lineChart } from '../charts/plotHelpers';
-import { shouldShowPaceMetrics } from '../analysis/filters';
+import { shouldShowPaceMetrics, effectiveRankingMetric } from '../analysis/filters';
+import { sortArtists, sortSongs } from '../analysis/aggregation';
 import { formatDuration, formatHours, formatLocalDate, formatLocalDateTime } from '../utils/formatting';
 import { METRIC_INFO } from '../content/siteContent';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -9,6 +10,7 @@ import type {
   AnalysisFilters,
   AnalysisResult,
   FilterContext,
+  RankingMetric,
   TabId,
 } from '../types';
 import { PlotlyCard } from './charts/PlotlyCard';
@@ -44,11 +46,13 @@ interface DashboardProps {
 function BrowseSongsCard({
   rows,
   combineRanking,
+  rankingMetric,
   theme,
   compact,
 }: {
   rows: SongStats[];
   combineRanking: boolean;
+  rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
 }) {
@@ -75,9 +79,15 @@ function BrowseSongsCard({
         <RankedBarPlot
           ref={plotRef}
           labels={chartRows.map((row) => row.trackName)}
-          values={chartRows.map((row) => row.numPlays)}
-          hover={chartRows.map((row) => `${row.artistName}<br>${formatHours(row.totalHours)} total`)}
-          xTitle="Plays"
+          values={chartRows.map((row) =>
+            rankingMetric === 'plays' ? row.numPlays : row.totalHours,
+          )}
+          hover={chartRows.map((row) =>
+            rankingMetric === 'plays'
+              ? `${row.artistName}<br>${formatHours(row.totalHours)} total`
+              : `${row.artistName}<br>${row.numPlays.toLocaleString()} plays`,
+          )}
+          xTitle={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
           theme={theme}
           compact={compact}
           onZoomChange={setChartZoomed}
@@ -103,13 +113,19 @@ function BrowseSongsCard({
       ) : null}
       {viewMode === 'grid' ? (
         <MobileRankedList
-          metricLabel="Plays"
+          metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
           items={chartRows.map((row) => ({
             primary: row.trackName,
             secondary: row.artistName,
-            value: row.numPlays,
-            valueText: row.numPlays.toLocaleString(),
-            meta: `${formatHours(row.totalHours)} total`,
+            value: rankingMetric === 'plays' ? row.numPlays : row.totalHours,
+            valueText:
+              rankingMetric === 'plays'
+                ? row.numPlays.toLocaleString()
+                : formatHours(row.totalHours),
+            meta:
+              rankingMetric === 'plays'
+                ? `${formatHours(row.totalHours)} total`
+                : `${row.numPlays.toLocaleString()} plays`,
           }))}
         />
       ) : null}
@@ -120,11 +136,13 @@ function BrowseSongsCard({
 function BrowseArtistsCard({
   rows,
   combineRanking,
+  rankingMetric,
   theme,
   compact,
 }: {
   rows: ArtistStats[];
   combineRanking: boolean;
+  rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
 }) {
@@ -151,9 +169,15 @@ function BrowseArtistsCard({
         <RankedBarPlot
           ref={plotRef}
           labels={chartRows.map((row) => row.artistName)}
-          values={chartRows.map((row) => row.listenCount)}
-          hover={chartRows.map((row) => formatHours(row.totalHours))}
-          xTitle="Plays"
+          values={chartRows.map((row) =>
+            rankingMetric === 'plays' ? row.listenCount : row.totalHours,
+          )}
+          hover={chartRows.map((row) =>
+            rankingMetric === 'plays'
+              ? formatHours(row.totalHours)
+              : `${row.listenCount.toLocaleString()} plays`,
+          )}
+          xTitle={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
           theme={theme}
           compact={compact}
           onZoomChange={setChartZoomed}
@@ -178,12 +202,18 @@ function BrowseArtistsCard({
       ) : null}
       {viewMode === 'grid' ? (
         <MobileRankedList
-          metricLabel="Plays"
+          metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
           items={chartRows.map((row) => ({
             primary: row.artistName,
-            value: row.listenCount,
-            valueText: row.listenCount.toLocaleString(),
-            meta: formatHours(row.totalHours),
+            value: rankingMetric === 'plays' ? row.listenCount : row.totalHours,
+            valueText:
+              rankingMetric === 'plays'
+                ? row.listenCount.toLocaleString()
+                : formatHours(row.totalHours),
+            meta:
+              rankingMetric === 'plays'
+                ? formatHours(row.totalHours)
+                : `${row.listenCount.toLocaleString()} plays`,
           }))}
         />
       ) : null}
@@ -284,6 +314,7 @@ export function Dashboard({
   const topNLabel = analysis.topSongsByPlays.length;
   const isCompact = useMediaQuery('(max-width: 640px)');
   const showMultiYearCharts = !filterContext.singleYear;
+  const rankingMetric = effectiveRankingMetric(filters);
 
   if (activeTab === 'summary') {
     return (
@@ -394,6 +425,7 @@ export function Dashboard({
         topNLabel={topNLabel}
         years={years}
         showMultiYearCharts={showMultiYearCharts}
+        rankingMetric={rankingMetric}
         theme={theme}
         compact={isCompact}
       />
@@ -407,6 +439,7 @@ export function Dashboard({
         topNLabel={topNLabel}
         years={years}
         showMultiYearCharts={showMultiYearCharts}
+        rankingMetric={rankingMetric}
         theme={theme}
         compact={isCompact}
       />
@@ -420,6 +453,7 @@ export function Dashboard({
         topNLabel={topNLabel}
         years={years}
         showMultiYearCharts={showMultiYearCharts}
+        rankingMetric={rankingMetric}
         theme={theme}
         compact={isCompact}
       />
@@ -433,6 +467,7 @@ export function Dashboard({
         <BookendsSection overview={overview} />
         <PatternsSection
           analysis={analysis}
+          rankingMetric={rankingMetric}
           theme={theme}
           showMultiYearCharts={showMultiYearCharts}
         />
@@ -441,45 +476,39 @@ export function Dashboard({
   }
 
   if (activeTab === 'timeline') {
+    const yearPoints = rankingMetric === 'plays' ? analysis.playsByYear : analysis.hoursByYear;
+    const yearTitle = rankingMetric === 'plays' ? 'Plays by year' : 'Playtime by year (hours)';
+    const yearYAxis = rankingMetric === 'plays' ? 'Plays' : 'Hours';
+    const yearValueLabel = rankingMetric === 'plays' ? 'Plays' : 'Hours';
+    const dailyPoints = rankingMetric === 'plays' ? analysis.playsByDate : analysis.hoursByDate;
+    const dailyTitle = rankingMetric === 'plays' ? 'Daily plays' : 'Daily playtime (hours)';
+    const dailyYAxis = rankingMetric === 'plays' ? 'Plays' : 'Hours';
+    const dailyValueLabel = rankingMetric === 'plays' ? 'Plays' : 'Hours';
+
     return (
       <div className="grid gap-6">
         {showMultiYearCharts ? (
-          <>
-            <PlotlyCard
-              title="Plays by year"
-              subtitle="Hover to see the top song each year."
-              data={[
-                lineChart(
-                  analysis.playsByYear.map((point) => point.label),
-                  analysis.playsByYear.map((point) => point.value),
-                  analysis.playsByYear.map((point) => point.topItem ?? ''),
-                  'Plays',
-                ),
-              ]}
-              layout={{ xaxis: { title: { text: 'Year' }, dtick: 1 }, yaxis: { title: { text: 'Plays' } } }}
-              theme={theme}
-              height={360}
-              points={analysis.playsByYear}
-              pointsValueLabel="Plays"
-            />
-
-            <PlotlyCard
-              title="Playtime by year (hours)"
-              data={[
-                lineChart(
-                  analysis.hoursByYear.map((point) => point.label),
-                  analysis.hoursByYear.map((point) => point.value),
-                  analysis.hoursByYear.map((point) => point.topItem ?? ''),
-                  'Hours',
-                ),
-              ]}
-              layout={{ xaxis: { title: { text: 'Year' }, dtick: 1 }, yaxis: { title: { text: 'Hours' } } }}
-              theme={theme}
-              height={360}
-              points={analysis.hoursByYear}
-              pointsValueLabel="Hours"
-            />
-          </>
+          <PlotlyCard
+            title={yearTitle}
+            subtitle={
+              rankingMetric === 'plays'
+                ? 'Hover to see the top song each year.'
+                : undefined
+            }
+            data={[
+              lineChart(
+                yearPoints.map((point) => point.label),
+                yearPoints.map((point) => point.value),
+                yearPoints.map((point) => point.topItem ?? ''),
+                yearValueLabel,
+              ),
+            ]}
+            layout={{ xaxis: { title: { text: 'Year' }, dtick: 1 }, yaxis: { title: { text: yearYAxis } } }}
+            theme={theme}
+            height={360}
+            points={yearPoints}
+            pointsValueLabel={yearValueLabel}
+          />
         ) : (
           <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted px-4 py-3">
             Year-over-year charts are hidden because your filter covers a single year (
@@ -488,41 +517,28 @@ export function Dashboard({
         )}
 
         <PlotlyCard
-          title="Daily plays"
-          subtitle="Most-listened track per day on hover. Dates use your local timezone."
+          title={dailyTitle}
+          subtitle={
+            rankingMetric === 'plays'
+              ? 'Most-listened track per day on hover. Dates use your local timezone.'
+              : 'Dates use your local timezone.'
+          }
           data={[
             lineChart(
-              analysis.playsByDate.map((point) => point.label),
-              analysis.playsByDate.map((point) => point.value),
-              analysis.playsByDate.map((point) => point.topItem ?? ''),
-              'Plays',
+              dailyPoints.map((point) => point.label),
+              dailyPoints.map((point) => point.value),
+              dailyPoints.map((point) => point.topItem ?? ''),
+              dailyValueLabel,
             ),
           ]}
-          layout={{ xaxis: { title: { text: 'Date (local)' }, automargin: true }, yaxis: { title: { text: 'Plays' } } }}
+          layout={{ xaxis: { title: { text: 'Date (local)' }, automargin: true }, yaxis: { title: { text: dailyYAxis } } }}
           theme={theme}
           height={360}
-          points={analysis.playsByDate}
-          pointsValueLabel="Plays"
+          points={dailyPoints}
+          pointsValueLabel={dailyValueLabel}
         />
 
-        <PlotlyCard
-          title="Daily playtime (hours)"
-          data={[
-            lineChart(
-              analysis.hoursByDate.map((point) => point.label),
-              analysis.hoursByDate.map((point) => point.value),
-              analysis.hoursByDate.map((point) => point.topItem ?? ''),
-              'Hours',
-            ),
-          ]}
-          layout={{ xaxis: { title: { text: 'Date (local)' }, automargin: true }, yaxis: { title: { text: 'Hours' } } }}
-          theme={theme}
-          height={360}
-          points={analysis.hoursByDate}
-          pointsValueLabel="Hours"
-        />
-
-        {showMultiYearCharts ? (
+        {showMultiYearCharts && rankingMetric === 'time' ? (
           <PlotlyCard
             title="Playtime by month across your history"
             data={[
@@ -545,8 +561,12 @@ export function Dashboard({
   }
 
   if (activeTab === 'browse') {
-    const combinedSongs = filters.combineRanking ? analysis.combinedSongs : analysis.allSongs;
-    const combinedArtists = filters.combineRanking ? analysis.combinedArtists : analysis.allArtists;
+    const browseSongs = filters.combineRanking
+      ? analysis.combinedSongs
+      : sortSongs(analysis.allSongs, rankingMetric);
+    const browseArtists = filters.combineRanking
+      ? analysis.combinedArtists
+      : sortArtists(analysis.allArtists, rankingMetric);
     const longestListens = [...analysis.records].sort((a, b) => b.msPlayed - a.msPlayed).slice(0, 100);
 
     return (
@@ -571,15 +591,17 @@ export function Dashboard({
         ) : null}
 
         <BrowseSongsCard
-          rows={combinedSongs}
+          rows={browseSongs}
           combineRanking={filters.combineRanking}
+          rankingMetric={rankingMetric}
           theme={theme}
           compact={isCompact}
         />
 
         <BrowseArtistsCard
-          rows={combinedArtists}
+          rows={browseArtists}
           combineRanking={filters.combineRanking}
+          rankingMetric={rankingMetric}
           theme={theme}
           compact={isCompact}
         />

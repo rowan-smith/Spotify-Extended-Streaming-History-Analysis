@@ -40,6 +40,7 @@ describe('createDefaultFilters', () => {
     expect(filters.hideSkipped).toBe(true);
     expect(filters.includeMusic).toBe(true);
     expect(filters.includePodcasts).toBe(false);
+    expect(filters.rankingMetric).toBe('plays');
   });
 });
 

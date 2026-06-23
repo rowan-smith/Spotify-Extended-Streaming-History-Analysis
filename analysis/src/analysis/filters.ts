@@ -1,4 +1,10 @@
-import type { AnalysisFilters, FilterBounds, FilterContext, StreamRecord } from '../types';
+import type {
+  AnalysisFilters,
+  FilterBounds,
+  FilterContext,
+  RankingMetric,
+  StreamRecord,
+} from '../types';
 import {
   DEFAULT_TOP_N,
   PRESET_DEFAULT,
@@ -21,7 +27,15 @@ export function createDefaultFilters(yearMin: number, yearMax: number): Analysis
     topN: DEFAULT_TOP_N,
     ...PRESET_DEFAULT,
     combineRanking: false,
+    rankingMetric: 'plays',
   };
+}
+
+export function effectiveRankingMetric(filters: AnalysisFilters): RankingMetric {
+  if (filters.preset === 'wrapped') {
+    return 'plays';
+  }
+  return filters.rankingMetric;
 }
 
 export function applyPreset(
@@ -39,6 +53,7 @@ export function applyPreset(
       ...current,
       preset: 'wrapped',
       ...PRESET_WRAPPED,
+      rankingMetric: 'plays',
       yearFrom: wrappedYear,
       yearTo: wrappedYear,
     };
@@ -275,6 +290,9 @@ export function countActiveFilters(
     count += 1;
   }
   if (filters.combineRanking) {
+    count += 1;
+  }
+  if (filters.rankingMetric !== 'plays') {
     count += 1;
   }
 

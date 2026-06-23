@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { PLAYS_VS_TIME_INFO } from '../../content/siteContent';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
-import type { AlbumStats, ArtistStats, SortMetric, SongStats } from '../../types';
+import type { AlbumStats, ArtistStats, RankingMetric, SongStats } from '../../types';
 import { Select } from '@/components/ui/select';
-import { MetricTabs } from './MetricTabs';
 import { MobileRankedList } from './MobileRankedList';
 import { RankedBarPlot } from './RankedBarPlot';
 import { VisualizationShell } from './VisualizationShell';
@@ -17,6 +15,7 @@ interface YearDrilldownChartProps {
   dataByPlays: Record<number, SongStats[] | ArtistStats[] | AlbumStats[]>;
   dataByTime: Record<number, SongStats[] | ArtistStats[] | AlbumStats[]>;
   labelKey: 'trackName' | 'artistName' | 'albumName';
+  rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
 }
@@ -27,12 +26,12 @@ export function YearDrilldownChart({
   dataByPlays,
   dataByTime,
   labelKey,
+  rankingMetric,
   theme,
   compact,
 }: YearDrilldownChartProps) {
   const defaultYear = years[years.length - 1] ?? new Date().getFullYear();
   const [year, setYear] = useState(defaultYear);
-  const [sortMetric, setSortMetric] = useState<SortMetric>('plays');
   const {
     viewMode,
     setViewMode,
@@ -42,7 +41,7 @@ export function YearDrilldownChart({
     resetChartView,
   } = useVisualizationView(compact);
 
-  const rows = (sortMetric === 'plays' ? dataByPlays[year] : dataByTime[year]) ?? [];
+  const rows = (rankingMetric === 'plays' ? dataByPlays[year] : dataByTime[year]) ?? [];
 
   const labels = rows.map((row) => {
     if (labelKey === 'trackName') {
@@ -55,7 +54,7 @@ export function YearDrilldownChart({
   });
 
   const values = rows.map((row) => {
-    if (sortMetric === 'plays') {
+    if (rankingMetric === 'plays') {
       return 'numPlays' in row ? row.numPlays : row.listenCount;
     }
     return row.totalHours;
@@ -68,7 +67,7 @@ export function YearDrilldownChart({
       return (row as AlbumStats).albumName;
     })();
 
-    if (sortMetric === 'plays') {
+    if (rankingMetric === 'plays') {
       return `${label}<br>${formatHours(row.totalHours)} total`;
     }
 
@@ -87,13 +86,13 @@ export function YearDrilldownChart({
 
     return {
       primary,
-      value: sortMetric === 'plays' ? plays : row.totalHours,
+      value: rankingMetric === 'plays' ? plays : row.totalHours,
       valueText:
-        sortMetric === 'plays'
+        rankingMetric === 'plays'
           ? plays.toLocaleString()
           : formatHours(row.totalHours),
       meta:
-        sortMetric === 'plays'
+        rankingMetric === 'plays'
           ? `${formatHours(row.totalHours)} total`
           : `${plays.toLocaleString()} plays`,
     };
@@ -102,20 +101,13 @@ export function YearDrilldownChart({
   return (
     <VisualizationShell
       title={title}
-      subtitle="Pick a year and metric to explore yearly rankings."
+      subtitle="Pick a year to explore yearly rankings."
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       chartZoomed={chartZoomed}
       onChartReset={resetChartView}
     >
-      <MetricTabs
-        active={sortMetric === 'time' ? 'time' : 'plays'}
-        onChange={(value) => setSortMetric(value)}
-        playsInfo={PLAYS_VS_TIME_INFO.plays}
-        timeInfo={PLAYS_VS_TIME_INFO.time}
-      />
-
-      <div className="flex items-center gap-2 mt-2">
+      <div className="flex items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>Year</span>
           <Select value={year} onChange={(event) => setYear(Number(event.target.value))}>
@@ -134,7 +126,7 @@ export function YearDrilldownChart({
           labels={labels}
           values={values}
           hover={hover}
-          xTitle={sortMetric === 'plays' ? 'Plays' : 'Hours'}
+          xTitle={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
           theme={theme}
           compact={compact}
           onZoomChange={setChartZoomed}
@@ -143,7 +135,7 @@ export function YearDrilldownChart({
 
       {viewMode === 'grid' ? (
         <MobileRankedList
-          metricLabel={sortMetric === 'plays' ? 'Plays' : 'Hours'}
+          metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
           items={mobileItems}
         />
       ) : null}

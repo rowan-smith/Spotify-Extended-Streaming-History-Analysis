@@ -5,18 +5,20 @@ import {
   multiYearLineSeries,
   verticalBarChart,
 } from '../../charts/plotHelpers';
-import type { AnalysisResult, TimelinePoint } from '../../types';
+import type { AnalysisResult, RankingMetric, TimelinePoint } from '../../types';
 import { PlotlyCard } from '../charts/PlotlyCard';
 import { DataTable } from '../DataTable';
 
 interface PatternsSectionProps {
   analysis: AnalysisResult;
+  rankingMetric: RankingMetric;
   theme: Theme;
   showMultiYearCharts: boolean;
 }
 
 export function PatternsSection({
   analysis,
+  rankingMetric,
   theme,
   showMultiYearCharts,
 }: PatternsSectionProps) {
@@ -32,78 +34,70 @@ export function PatternsSection({
     [analysis.monthlyHistoryByYear],
   );
 
+  const monthPoints = rankingMetric === 'plays' ? analysis.playsByMonth : analysis.hoursByMonth;
+  const monthTitle =
+    rankingMetric === 'plays' ? 'Plays by month (in range)' : 'Playtime by month (in range)';
+  const monthYAxis = rankingMetric === 'plays' ? 'Plays' : 'Hours';
+  const monthValueLabel = rankingMetric === 'plays' ? 'Plays' : 'Hours';
+
   return (
     <>
       <PlotlyCard
-        title="Plays by month (in range)"
+        title={monthTitle}
         subtitle="All Januaries, Februaries, etc. pooled across your filtered history."
         data={[
           verticalBarChart(
-            analysis.playsByMonth.map((point) => point.label),
-            analysis.playsByMonth.map((point) => point.value),
-            analysis.playsByMonth.map((point) => point.topItem ?? ''),
-            'Plays',
+            monthPoints.map((point) => point.label),
+            monthPoints.map((point) => point.value),
+            monthPoints.map((point) => point.topItem ?? ''),
+            monthValueLabel,
           ),
         ]}
-        layout={{ xaxis: { title: { text: 'Month' } }, yaxis: { title: { text: 'Plays' } } }}
+        layout={{ xaxis: { title: { text: 'Month' } }, yaxis: { title: { text: monthYAxis } } }}
         theme={theme}
         height={360}
-        points={analysis.playsByMonth}
-        pointsValueLabel="Plays"
+        points={monthPoints}
+        pointsValueLabel={monthValueLabel}
       />
 
-      <PlotlyCard
-        title="Playtime by month (in range)"
-        subtitle="All Januaries, Februaries, etc. pooled across your filtered history."
-        data={[
-          verticalBarChart(
-            analysis.hoursByMonth.map((point) => point.label),
-            analysis.hoursByMonth.map((point) => point.value),
-            analysis.hoursByMonth.map((point) => point.topItem ?? ''),
-            'Hours',
-          ),
-        ]}
-        layout={{ xaxis: { title: { text: 'Month' } }, yaxis: { title: { text: 'Hours' } } }}
-        theme={theme}
-        height={360}
-        points={analysis.hoursByMonth}
-        pointsValueLabel="Hours"
-      />
+      {rankingMetric === 'plays' ? (
+        <>
+          <PlotlyCard
+            title="Plays by day of month (in range)"
+            subtitle="All 1sts, 2nds, etc. pooled across your filtered history."
+            data={[
+              lineChart(
+                analysis.playsByDayOfMonth.map((point) => point.label),
+                analysis.playsByDayOfMonth.map((point) => point.value),
+                analysis.playsByDayOfMonth.map((point) => point.topItem ?? ''),
+                'Plays',
+              ),
+            ]}
+            layout={{ xaxis: { title: { text: 'Day of month' } }, yaxis: { title: { text: 'Plays' } } }}
+            theme={theme}
+            height={360}
+            points={analysis.playsByDayOfMonth}
+            pointsValueLabel="Plays"
+          />
 
-      <PlotlyCard
-        title="Plays by day of month (in range)"
-        subtitle="All 1sts, 2nds, etc. pooled across your filtered history."
-        data={[
-          lineChart(
-            analysis.playsByDayOfMonth.map((point) => point.label),
-            analysis.playsByDayOfMonth.map((point) => point.value),
-            analysis.playsByDayOfMonth.map((point) => point.topItem ?? ''),
-            'Plays',
-          ),
-        ]}
-        layout={{ xaxis: { title: { text: 'Day of month' } }, yaxis: { title: { text: 'Plays' } } }}
-        theme={theme}
-        height={360}
-        points={analysis.playsByDayOfMonth}
-        pointsValueLabel="Plays"
-      />
-
-      <PlotlyCard
-        title="Plays by hour of day (local time)"
-        data={[
-          verticalBarChart(
-            analysis.playsByHour.map((point) => point.label),
-            analysis.playsByHour.map((point) => point.value),
-            analysis.playsByHour.map((point) => point.topItem ?? ''),
-            'Plays',
-          ),
-        ]}
-        layout={{ xaxis: { title: { text: 'Hour (local)' }, tickangle: -45 }, yaxis: { title: { text: 'Plays' } } }}
-        theme={theme}
-        height={360}
-        points={analysis.playsByHour}
-        pointsValueLabel="Plays"
-      />
+          <PlotlyCard
+            title="Plays by hour of day (local time)"
+            data={[
+              verticalBarChart(
+                analysis.playsByHour.map((point) => point.label),
+                analysis.playsByHour.map((point) => point.value),
+                analysis.playsByHour.map((point) => point.topItem ?? ''),
+                'Plays',
+              ),
+            ]}
+            layout={{ xaxis: { title: { text: 'Hour (local)' }, tickangle: -45 }, yaxis: { title: { text: 'Plays' } } }}
+            theme={theme}
+            height={360}
+            points={analysis.playsByHour}
+            pointsValueLabel="Plays"
+          />
+        </>
+      ) : null}
 
       {showMultiYearCharts && analysis.monthlyHistoryByYear.length > 1 ? (
         <PlotlyCard

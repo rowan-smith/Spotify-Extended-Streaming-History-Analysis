@@ -1,22 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { buildAlbumMetricItems } from '../../analysis/metricDisplay';
-import { PLAYS_VS_TIME_INFO } from '../../content/siteContent';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
 import { MetricGrid } from '../MetricGrid';
-import { MetricTabs } from '../charts/MetricTabs';
 import { MobileRankedList } from '../charts/MobileRankedList';
 import { RankedBarChart } from '../charts/RankedBarChart';
 import { YearDrilldownChart } from '../charts/YearDrilldownChart';
 import { DataTable } from '../DataTable';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
-import type { AnalysisResult } from '../../types';
+import type { AnalysisResult, RankingMetric } from '../../types';
 
 interface AlbumsTabProps {
   analysis: AnalysisResult;
   topNLabel: number;
   years: number[];
   showMultiYearCharts: boolean;
+  rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
 }
@@ -26,11 +25,11 @@ export function AlbumsTab({
   topNLabel,
   years,
   showMultiYearCharts,
+  rankingMetric,
   theme,
   compact,
 }: AlbumsTabProps) {
-  const [metric, setMetric] = useState<'plays' | 'time'>('plays');
-  const albums = metric === 'plays' ? analysis.topAlbumsByPlays : analysis.topAlbumsByTime;
+  const albums = rankingMetric === 'plays' ? analysis.topAlbumsByPlays : analysis.topAlbumsByTime;
   const {
     viewMode,
     setViewMode,
@@ -45,7 +44,7 @@ export function AlbumsTab({
     [analysis.albumMetrics],
   );
 
-  const title = `Top ${topNLabel} albums by ${metric === 'plays' ? 'plays' : 'playtime'}`;
+  const title = `Top ${topNLabel} albums by ${rankingMetric === 'plays' ? 'plays' : 'playtime'}`;
 
   return (
     <div className="grid gap-6 min-w-0">
@@ -54,27 +53,18 @@ export function AlbumsTab({
         subtitle="Album-level patterns from your filtered history."
         metrics={albumMetrics}
       />
-      <MetricTabs
-        active={metric}
-        onChange={setMetric}
-        playsInfo={PLAYS_VS_TIME_INFO.plays}
-        timeInfo={PLAYS_VS_TIME_INFO.time}
-      />
-      <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted px-4 py-3">
-        {metric === 'plays' ? PLAYS_VS_TIME_INFO.plays : PLAYS_VS_TIME_INFO.time}
-      </p>
 
       <RankedBarChart
         title={title}
         subtitle={compact ? 'Ranked list optimised for smaller screens.' : undefined}
         labels={albums.map((album) => album.albumName)}
-        values={albums.map((album) => (metric === 'plays' ? album.numPlays : album.totalHours))}
+        values={albums.map((album) => (rankingMetric === 'plays' ? album.numPlays : album.totalHours))}
         hover={albums.map((album) =>
-          metric === 'plays'
+          rankingMetric === 'plays'
             ? `${album.artistName}<br>${formatHours(album.totalHours)} total`
             : `${album.artistName}<br>${album.numPlays.toLocaleString()} plays`,
         )}
-        xTitle={metric === 'plays' ? 'Plays' : 'Hours'}
+        xTitle={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
         theme={theme}
         compact={compact}
         viewMode={viewMode}
@@ -103,17 +93,17 @@ export function AlbumsTab({
         }
         gridView={
           <MobileRankedList
-            metricLabel={metric === 'plays' ? 'Plays' : 'Hours'}
+            metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
             items={albums.map((album) => ({
               primary: album.albumName,
               secondary: album.artistName,
-              value: metric === 'plays' ? album.numPlays : album.totalHours,
+              value: rankingMetric === 'plays' ? album.numPlays : album.totalHours,
               valueText:
-                metric === 'plays'
+                rankingMetric === 'plays'
                   ? album.numPlays.toLocaleString()
                   : formatHours(album.totalHours),
               meta:
-                metric === 'plays'
+                rankingMetric === 'plays'
                   ? `${formatHours(album.totalHours)} total`
                   : `${album.numPlays.toLocaleString()} plays`,
             }))}
@@ -128,6 +118,7 @@ export function AlbumsTab({
           dataByPlays={analysis.topAlbumsByYear}
           dataByTime={analysis.topAlbumsByYearByTime}
           labelKey="albumName"
+          rankingMetric={rankingMetric}
           theme={theme}
           compact={compact}
         />

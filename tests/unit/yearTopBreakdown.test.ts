@@ -5,6 +5,7 @@ import {
   metricValueForEntry,
   topSongsForAlbumInYear,
   topSongsForArtistInYear,
+  topSongsInYear,
 } from '../../analysis/src/components/charts/yearTopBreakdown';
 import type { StreamRecord } from '../../analysis/src/types';
 
@@ -100,6 +101,53 @@ describe('topSongsForArtistInYear', () => {
 
     expect(songs).toHaveLength(2);
     expect(songs.map((song) => song.trackName)).toEqual(['Physical', 'Levitating']);
+  });
+});
+
+describe('topSongsInYear', () => {
+  const records = [
+    makeRecord(2024, 'Song A', 'Artist', 'Album', 100_000),
+    makeRecord(2024, 'Song B', 'Artist', 'Album', 200_000),
+    makeRecord(2024, 'Song B', 'Artist', 'Album', 200_000),
+    makeRecord(2024, 'Song C', 'Artist', 'Album', 300_000),
+    makeRecord(2024, 'Song C', 'Artist', 'Album', 300_000),
+    makeRecord(2024, 'Song C', 'Artist', 'Album', 300_000),
+    makeRecord(2024, 'Song D', 'Artist', 'Album', 400_000),
+    makeRecord(2024, 'Song D', 'Artist', 'Album', 400_000),
+    makeRecord(2024, 'Song D', 'Artist', 'Album', 400_000),
+    makeRecord(2024, 'Song D', 'Artist', 'Album', 400_000),
+    makeRecord(2024, 'Song E', 'Artist', 'Album', 500_000),
+    makeRecord(2024, 'Song E', 'Artist', 'Album', 500_000),
+    makeRecord(2024, 'Song E', 'Artist', 'Album', 500_000),
+    makeRecord(2024, 'Song E', 'Artist', 'Album', 500_000),
+    makeRecord(2024, 'Song E', 'Artist', 'Album', 500_000),
+    makeRecord(2024, 'Song F', 'Artist', 'Album', 600_000),
+    makeRecord(2024, 'Song F', 'Artist', 'Album', 600_000),
+    makeRecord(2024, 'Song F', 'Artist', 'Album', 600_000),
+    makeRecord(2024, 'Song F', 'Artist', 'Album', 600_000),
+    makeRecord(2024, 'Song F', 'Artist', 'Album', 600_000),
+    makeRecord(2024, 'Song F', 'Artist', 'Album', 600_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2024, 'Song G', 'Artist', 'Album', 700_000),
+    makeRecord(2023, 'Old Song', 'Artist', 'Album', 900_000),
+  ];
+
+  it('returns only the top 5 songs for that year by default', () => {
+    const songs = topSongsInYear(records, 2024, 'plays');
+
+    expect(songs).toHaveLength(5);
+    expect(songs.map((song) => song.trackName)).toEqual([
+      'Song G',
+      'Song F',
+      'Song E',
+      'Song D',
+      'Song C',
+    ]);
   });
 });
 

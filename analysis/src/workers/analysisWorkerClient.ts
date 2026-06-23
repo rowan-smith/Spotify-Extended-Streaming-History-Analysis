@@ -8,6 +8,11 @@ import {
 } from '../analysis/processData';
 import type { AnalysisFilters, AnalysisResult, StreamRecord } from '../types';
 import {
+  clearAnalysisCache,
+  getCachedAnalysis,
+  setCachedAnalysis,
+} from './analysisCache';
+import {
   deserializeAnalysisResult,
   serializeStreamRecords,
   type SerializedAnalysisResult,
@@ -34,10 +39,32 @@ export interface AnalyzeResponse {
   wrappedFilteredCount: number;
 }
 
+export interface CountResponse {
+  standardFilteredCount: number;
+  wrappedFilteredCount: number;
+}
+
+export class AnalysisSupersededError extends Error {
+  constructor() {
+    super('Analysis superseded.');
+    this.name = 'AnalysisSupersededError';
+  }
+}
+
 type PendingRequest = {
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
   onProgress?: (progress: LoadProgress) => void;
+};
+
+type AnalyzeWaiter = {
+  resolve: (value: AnalyzeResponse) => void;
+  reject: (reason?: unknown) => void;
+};
+
+type CountWaiter = {
+  resolve: (value: CountResponse) => void;
+  reject: (reason?: unknown) => void;
 };
 
 function skipSourceRecordsFor(
@@ -49,6 +76,20 @@ function skipSourceRecordsFor(
     return filteredRecords;
   }
   return filterRecords(allRecords, { ...filters, hideSkipped: false });
+}
+
+function countFilteredRecords(
+  allRecords: StreamRecord[],
+  request: AnalyzeRequest,
+): CountResponse {
+  const standardFilteredCount = filterRecords(allRecords, request.standardFilters).length;
+  let wrappedFilteredCount = 0;
+
+  if (request.includeWrapped) {
+    wrappedFilteredCount = filterRecords(allRecords, request.wrappedFilters).length;
+  }
+
+  return { standardFilteredCount, wrappedFilteredCount };
 }
 
 function analyzeOnMainThread(
@@ -94,7 +135,15 @@ function analyzeOnMainThread(
   };
 }
 
-class MainThreadBackend {
+interface AnalysisBackend {
+  loadFiles(files: File[], onProgress?: (progress: LoadProgress) => void): Promise<LoadedDataSummary>;
+  loadRecords(records: StreamRecord[]): Promise<LoadedDataSummary>;
+  analyzeUncached(request: AnalyzeRequest): Promise<AnalyzeResponse>;
+  countFiltered(request: AnalyzeRequest): Promise<CountResponse>;
+  reset(): void | Promise<void>;
+}
+
+class MainThreadBackend implements AnalysisBackend {
   private records: StreamRecord[] = [];
 
   async loadFiles(
@@ -110,8 +159,12 @@ class MainThreadBackend {
     return summarizeLoadedRecords(this.records);
   }
 
-  async analyze(request: AnalyzeRequest): Promise<AnalyzeResponse> {
+  async analyzeUncached(request: AnalyzeRequest): Promise<AnalyzeResponse> {
     return analyzeOnMainThread(this.records, request);
+  }
+
+  async countFiltered(request: AnalyzeRequest): Promise<CountResponse> {
+    return countFilteredRecords(this.records, request);
   }
 
   reset(): void {
@@ -119,7 +172,7 @@ class MainThreadBackend {
   }
 }
 
-class WorkerBackend {
+class WorkerBackend implements AnalysisBackend {
   private worker: Worker | null = null;
   private pending = new Map<string, PendingRequest>();
   private nextId = 0;
@@ -164,6 +217,15 @@ class WorkerBackend {
       return;
     }
 
+    if (data.type === 'superseded') {
+      const superseded = this.pending.get(data.id);
+      if (superseded) {
+        this.pending.delete(data.id);
+        superseded.reject(new AnalysisSupersededError());
+      }
+      return;
+    }
+
     const request = this.pending.get(data.id);
     if (!request) {
       return;
@@ -182,6 +244,14 @@ class WorkerBackend {
         yearMin: data.yearMin ?? new Date().getFullYear(),
         yearMax: data.yearMax ?? new Date().getFullYear(),
       } satisfies LoadedDataSummary);
+      return;
+    }
+
+    if (data.type === 'count') {
+      request.resolve({
+        standardFilteredCount: data.standardFilteredCount ?? 0,
+        wrappedFilteredCount: data.wrappedFilteredCount ?? 0,
+      } satisfies CountResponse);
       return;
     }
 
@@ -205,7 +275,7 @@ class WorkerBackend {
   }
 
   private request<T>(
-    type: 'load' | 'loadRecords' | 'analyze' | 'reset',
+    type: 'load' | 'loadRecords' | 'analyze' | 'count' | 'reset',
     payload: Record<string, unknown> = {},
     onProgress?: (progress: LoadProgress) => void,
   ): Promise<T> {
@@ -235,11 +305,21 @@ class WorkerBackend {
     });
   }
 
-  analyze(request: AnalyzeRequest): Promise<AnalyzeResponse> {
+  analyzeUncached(request: AnalyzeRequest): Promise<AnalyzeResponse> {
     return this.request<AnalyzeResponse>('analyze', {
       standardFilters: request.standardFilters,
       wrappedFilters: request.wrappedFilters,
       includeWrapped: request.includeWrapped,
+      generation: ++workerAnalyzeGeneration,
+    });
+  }
+
+  countFiltered(request: AnalyzeRequest): Promise<CountResponse> {
+    return this.request<CountResponse>('count', {
+      standardFilters: request.standardFilters,
+      wrappedFilters: request.wrappedFilters,
+      includeWrapped: request.includeWrapped,
+      generation: ++workerCountGeneration,
     });
   }
 
@@ -254,39 +334,194 @@ class WorkerBackend {
   }
 }
 
+let workerAnalyzeGeneration = 0;
+let workerCountGeneration = 0;
+
+let analyzeFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let countFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingAnalyzeRequest: AnalyzeRequest | null = null;
+let pendingCountRequest: AnalyzeRequest | null = null;
+let analyzeWaiters: AnalyzeWaiter[] = [];
+let countWaiters: CountWaiter[] = [];
+let analyzeInFlight: Promise<void> | null = null;
+let countInFlight: Promise<void> | null = null;
+
 export function isAnalysisWorkerAvailable(): boolean {
   return typeof Worker !== 'undefined';
 }
 
-let backend: MainThreadBackend | WorkerBackend | null = null;
+let backend: AnalysisBackend | null = null;
 
-function getBackend(): MainThreadBackend | WorkerBackend {
+function getBackend(): AnalysisBackend {
   if (!backend) {
     backend = isAnalysisWorkerAvailable() ? new WorkerBackend() : new MainThreadBackend();
   }
   return backend;
 }
 
+function scheduleAnalyze(request: AnalyzeRequest): Promise<AnalyzeResponse> {
+  const cached = getCachedAnalysis(request);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+
+  return new Promise((resolve, reject) => {
+    pendingAnalyzeRequest = request;
+    analyzeWaiters.push({ resolve, reject });
+
+    if (analyzeFlushTimer) {
+      clearTimeout(analyzeFlushTimer);
+    }
+    analyzeFlushTimer = setTimeout(() => {
+      analyzeFlushTimer = null;
+      void flushAnalyzeQueue();
+    }, 0);
+  });
+}
+
+async function flushAnalyzeQueue(): Promise<void> {
+  if (analyzeInFlight) {
+    return;
+  }
+
+  analyzeInFlight = (async () => {
+    while (pendingAnalyzeRequest && analyzeWaiters.length > 0) {
+      const request = pendingAnalyzeRequest;
+      pendingAnalyzeRequest = null;
+      const waiters = analyzeWaiters;
+      analyzeWaiters = [];
+
+      try {
+        const cached = getCachedAnalysis(request);
+        let result: AnalyzeResponse;
+        if (cached) {
+          result = cached;
+        } else {
+          result = await getBackend().analyzeUncached(request);
+          setCachedAnalysis(request, result);
+        }
+        for (const waiter of waiters) {
+          waiter.resolve(result);
+        }
+      } catch (error) {
+        for (const waiter of waiters) {
+          waiter.reject(error);
+        }
+      }
+    }
+    analyzeInFlight = null;
+
+    if (pendingAnalyzeRequest && analyzeWaiters.length > 0) {
+      void flushAnalyzeQueue();
+    }
+  })();
+
+  await analyzeInFlight;
+}
+
+function scheduleCount(request: AnalyzeRequest): Promise<CountResponse> {
+  return new Promise((resolve, reject) => {
+    pendingCountRequest = request;
+    countWaiters.push({ resolve, reject });
+
+    if (countFlushTimer) {
+      clearTimeout(countFlushTimer);
+    }
+    countFlushTimer = setTimeout(() => {
+      countFlushTimer = null;
+      void flushCountQueue();
+    }, 0);
+  });
+}
+
+async function flushCountQueue(): Promise<void> {
+  if (countInFlight) {
+    return;
+  }
+
+  countInFlight = (async () => {
+    while (pendingCountRequest && countWaiters.length > 0) {
+      const request = pendingCountRequest;
+      pendingCountRequest = null;
+      const waiters = countWaiters;
+      countWaiters = [];
+
+      try {
+        const result = await getBackend().countFiltered(request);
+        for (const waiter of waiters) {
+          waiter.resolve(result);
+        }
+      } catch (error) {
+        for (const waiter of waiters) {
+          waiter.reject(error);
+        }
+      }
+    }
+    countInFlight = null;
+
+    if (pendingCountRequest && countWaiters.length > 0) {
+      void flushCountQueue();
+    }
+  })();
+
+  await countInFlight;
+}
+
+function resetPendingQueues(): void {
+  if (analyzeFlushTimer) {
+    clearTimeout(analyzeFlushTimer);
+    analyzeFlushTimer = null;
+  }
+  if (countFlushTimer) {
+    clearTimeout(countFlushTimer);
+    countFlushTimer = null;
+  }
+
+  pendingAnalyzeRequest = null;
+  pendingCountRequest = null;
+
+  for (const waiter of analyzeWaiters) {
+    waiter.reject(new Error('Analysis reset.'));
+  }
+  for (const waiter of countWaiters) {
+    waiter.reject(new Error('Analysis reset.'));
+  }
+  analyzeWaiters = [];
+  countWaiters = [];
+  analyzeInFlight = null;
+  countInFlight = null;
+}
+
 export function resetAnalysisBackend(): void {
+  resetPendingQueues();
+  clearAnalysisCache();
   void backend?.reset();
   backend = null;
+  workerAnalyzeGeneration = 0;
+  workerCountGeneration = 0;
 }
 
 export async function loadFilesInBackend(
   files: File[],
   onProgress?: (progress: LoadProgress) => void,
 ): Promise<LoadedDataSummary> {
+  clearAnalysisCache();
   return getBackend().loadFiles(files, onProgress);
 }
 
 export async function loadRecordsInBackend(records: StreamRecord[]): Promise<LoadedDataSummary> {
+  clearAnalysisCache();
   return getBackend().loadRecords(records);
 }
 
 export async function analyzeInBackend(request: AnalyzeRequest): Promise<AnalyzeResponse> {
-  return getBackend().analyze(request);
+  return scheduleAnalyze(request);
+}
+
+export async function countInBackend(request: AnalyzeRequest): Promise<CountResponse> {
+  return scheduleCount(request);
 }
 
 export function resetBackendRecords(): void {
-  void getBackend().reset();
+  resetAnalysisBackend();
 }

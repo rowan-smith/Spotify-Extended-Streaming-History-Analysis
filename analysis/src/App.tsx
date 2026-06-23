@@ -229,6 +229,7 @@ export default function App() {
                     activeTab={activeTab}
                     filterContext={activeFilterContext}
                     filters={filters}
+                    filtersPending={filtersPending}
                     theme={theme}
                     onFiltersChange={handleFiltersChange}
                   />

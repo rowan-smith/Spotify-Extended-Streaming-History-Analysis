@@ -1,4 +1,4 @@
-import { aggregateSongs, sortSongs } from '../../analysis/aggregation';
+import { aggregateSongs, sortSongs, topSongs } from '../../analysis/aggregation';
 import type { AlbumStats, ArtistStats, RankingMetric, SongStats, StreamRecord } from '../../types';
 
 export type YearTopLabelKey = 'trackName' | 'artistName' | 'albumName';
@@ -56,6 +56,8 @@ export function metricValueForEntry(entry: YearTopEntry, rankingMetric: RankingM
   return rankingMetric === 'plays' ? entry.plays : entry.hours;
 }
 
+export const YEAR_TOP_SONGS_BREAKDOWN_LIMIT = 5;
+
 export const YEAR_TOP_ENTITY_LABELS: Record<YearTopLabelKey, { column: string; singular: string }> = {
   trackName: { column: 'Song', singular: 'song' },
   artistName: { column: 'Artist', singular: 'artist' },
@@ -111,12 +113,14 @@ export function topSongsInYear(
   records: StreamRecord[],
   year: number,
   rankingMetric: RankingMetric,
+  limit = YEAR_TOP_SONGS_BREAKDOWN_LIMIT,
 ): SongStats[] {
   const yearRecords = recordsInYear(records, year);
 
-  return sortSongs(
-    [...aggregateSongs(yearRecords).values()],
+  return topSongs(
+    aggregateSongs(yearRecords),
     sortMetricFromRanking(rankingMetric),
+    limit,
   );
 }
 

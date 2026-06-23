@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildWrappedFilters,
   createDefaultFilters,
@@ -8,7 +8,9 @@ import {
 import { DASHBOARD_TABS } from '../content/dashboardTabs';
 import type { AnalysisFilters, AnalysisResult, AppView, RankingViewMode, TabId } from '../types';
 import {
+  AnalysisSupersededError,
   analyzeInBackend,
+  countInBackend,
   loadFilesInBackend,
   loadRecordsInBackend,
   resetAnalysisBackend,
@@ -35,12 +37,12 @@ export function useAnalysis() {
   const [analysisPending, setAnalysisPending] = useState(false);
 
   const analyzeRequestId = useRef(0);
+  const countRequestId = useRef(0);
 
   const isWrappedMode = viewMode === 'wrapped';
-  const deferredFilters = useDeferredValue(filters);
-  const filtersPending = deferredFilters !== filters || analysisPending;
+  const filtersPending = analysisPending;
 
-  const filterContext = useMemo(() => getFilterContext(deferredFilters), [deferredFilters]);
+  const filterContext = useMemo(() => getFilterContext(filters), [filters]);
   const wrappedFilters = useMemo(
     () => buildWrappedFilters(bounds, wrappedYear),
     [bounds, wrappedYear],
@@ -60,6 +62,15 @@ export function useAnalysis() {
   const activeAnalysis = isWrappedMode ? wrappedAnalysis : analysis;
   const activeFilterContext = isWrappedMode ? wrappedFilterContext : filterContext;
   const activeFilteredPlays = isWrappedMode ? wrappedFilteredPlays : standardFilteredPlays;
+
+  const analyzeRequest = useMemo(
+    () => ({
+      standardFilters: filters,
+      wrappedFilters,
+      includeWrapped: isWrappedMode,
+    }),
+    [filters, wrappedFilters, isWrappedMode],
+  );
 
   const prefetchDashboardBundle = useCallback(() => {
     void import('../components/Dashboard');
@@ -82,14 +93,35 @@ export function useAnalysis() {
       return;
     }
 
+    const requestId = ++countRequestId.current;
+
+    void countInBackend(analyzeRequest)
+      .then((result) => {
+        if (requestId !== countRequestId.current) {
+          return;
+        }
+        setStandardFilteredPlays(result.standardFilteredCount);
+        setWrappedFilteredPlays(result.wrappedFilteredCount);
+      })
+      .catch((caught) => {
+        if (caught instanceof AnalysisSupersededError || requestId !== countRequestId.current) {
+          return;
+        }
+        const message =
+          caught instanceof Error ? caught.message : 'Failed to count filtered plays.';
+        setError(message);
+      });
+  }, [analyzeRequest, totalRecordCount]);
+
+  useEffect(() => {
+    if (totalRecordCount === 0) {
+      return;
+    }
+
     const requestId = ++analyzeRequestId.current;
     setAnalysisPending(true);
 
-    void analyzeInBackend({
-      standardFilters: deferredFilters,
-      wrappedFilters,
-      includeWrapped: isWrappedMode,
-    })
+    void analyzeInBackend(analyzeRequest)
       .then((result) => {
         if (requestId !== analyzeRequestId.current) {
           return;
@@ -100,7 +132,7 @@ export function useAnalysis() {
         setWrappedFilteredPlays(result.wrappedFilteredCount);
       })
       .catch((caught) => {
-        if (requestId !== analyzeRequestId.current) {
+        if (caught instanceof AnalysisSupersededError || requestId !== analyzeRequestId.current) {
           return;
         }
         const message =
@@ -112,7 +144,7 @@ export function useAnalysis() {
           setAnalysisPending(false);
         }
       });
-  }, [deferredFilters, wrappedFilters, isWrappedMode, totalRecordCount]);
+  }, [analyzeRequest, totalRecordCount]);
 
   useEffect(() => () => resetAnalysisBackend(), []);
 

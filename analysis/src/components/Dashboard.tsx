@@ -27,6 +27,7 @@ import { AlbumsTab } from './tabs/AlbumsTab';
 import { DiscoverTab } from './tabs/DiscoverTab';
 import { FancyRankedListPanel } from './charts/FancyRankedListPanel';
 import { songsForArtist } from '../analysis/rankedListBreakdown';
+import { AnalysisUpdatingOverlay } from './charts/AnalysisUpdatingOverlay';
 import { VisualizationShell } from './charts/VisualizationShell';
 import { RankedBarPlot } from './charts/RankedBarPlot';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,6 +42,7 @@ interface DashboardProps {
   activeTab: TabId;
   filterContext: FilterContext;
   filters: AnalysisFilters;
+  filtersPending?: boolean;
   theme: Theme;
   onFiltersChange: (filters: AnalysisFilters) => void;
 }
@@ -261,7 +263,7 @@ function LongestListensCard({
   );
 }
 
-export function Dashboard({
+function DashboardContent({
   analysis,
   isWrappedMode,
   wrappedYear,
@@ -594,4 +596,12 @@ export function Dashboard({
   }
 
   return null;
+}
+
+export function Dashboard({ filtersPending = false, ...props }: DashboardProps) {
+  return (
+    <AnalysisUpdatingOverlay pending={filtersPending}>
+      <DashboardContent {...props} filtersPending={filtersPending} />
+    </AnalysisUpdatingOverlay>
+  );
 }

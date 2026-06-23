@@ -12,6 +12,8 @@ import {
 } from './recordSerialization';
 
 let allRecords: import('../types').StreamRecord[] = [];
+let latestAnalyzeGeneration = 0;
+let latestCountGeneration = 0;
 
 function skipSourceRecordsFor(
   filters: AnalysisFilters,
@@ -21,6 +23,24 @@ function skipSourceRecordsFor(
     return filteredRecords;
   }
   return filterRecords(allRecords, { ...filters, hideSkipped: false });
+}
+
+function runCount(payload: {
+  standardFilters: AnalysisFilters;
+  wrappedFilters: AnalysisFilters;
+  includeWrapped: boolean;
+}): {
+  standardFilteredCount: number;
+  wrappedFilteredCount: number;
+} {
+  const standardFilteredCount = filterRecords(allRecords, payload.standardFilters).length;
+  let wrappedFilteredCount = 0;
+
+  if (payload.includeWrapped) {
+    wrappedFilteredCount = filterRecords(allRecords, payload.wrappedFilters).length;
+  }
+
+  return { standardFilteredCount, wrappedFilteredCount };
 }
 
 function runAnalyze(payload: {
@@ -71,7 +91,8 @@ function runAnalyze(payload: {
 self.onmessage = async (event: MessageEvent) => {
   const message = event.data as {
     id: string;
-    type: 'load' | 'loadRecords' | 'analyze' | 'reset';
+    type: 'load' | 'loadRecords' | 'analyze' | 'count' | 'reset';
+    generation?: number;
     files?: File[];
     records?: SerializedStreamRecord[];
     standardFilters?: AnalysisFilters;
@@ -82,6 +103,8 @@ self.onmessage = async (event: MessageEvent) => {
   try {
     if (message.type === 'reset') {
       allRecords = [];
+      latestAnalyzeGeneration = 0;
+      latestCountGeneration = 0;
       self.postMessage({ id: message.id, type: 'reset' });
       return;
     }
@@ -120,16 +143,51 @@ self.onmessage = async (event: MessageEvent) => {
       return;
     }
 
+    if (message.type === 'count') {
+      if (!message.standardFilters || !message.wrappedFilters) {
+        throw new Error('Missing filter payload.');
+      }
+
+      const generation = message.generation ?? 0;
+      latestCountGeneration = generation;
+
+      const result = runCount({
+        standardFilters: message.standardFilters,
+        wrappedFilters: message.wrappedFilters,
+        includeWrapped: message.includeWrapped ?? false,
+      });
+
+      if (generation !== latestCountGeneration) {
+        self.postMessage({ id: message.id, type: 'superseded' });
+        return;
+      }
+
+      self.postMessage({
+        id: message.id,
+        type: 'count',
+        ...result,
+      });
+      return;
+    }
+
     if (message.type === 'analyze') {
       if (!message.standardFilters || !message.wrappedFilters) {
         throw new Error('Missing filter payload.');
       }
+
+      const generation = message.generation ?? 0;
+      latestAnalyzeGeneration = generation;
 
       const result = runAnalyze({
         standardFilters: message.standardFilters,
         wrappedFilters: message.wrappedFilters,
         includeWrapped: message.includeWrapped ?? false,
       });
+
+      if (generation !== latestAnalyzeGeneration) {
+        self.postMessage({ id: message.id, type: 'superseded' });
+        return;
+      }
 
       self.postMessage({
         id: message.id,

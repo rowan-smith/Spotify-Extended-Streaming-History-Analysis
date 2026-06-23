@@ -33,11 +33,15 @@ export const RankedBarPlot = forwardRef<PlotHandle, RankedBarPlotProps>(function
       layout={{
         ...plotTheme.layout,
         height: chartLayout.height,
+        margin: chartLayout.inlineLabels
+          ? { l: 12, r: 16, t: 16, b: 48 }
+          : plotTheme.layout.margin,
         bargap: labels.length > 30 ? 0.08 : 0.15,
         xaxis: { title: { text: xTitle }, gridcolor: plotTheme.grid },
         yaxis: {
           automargin: !chartLayout.inlineLabels,
           showticklabels: !chartLayout.inlineLabels,
+          ticklen: chartLayout.inlineLabels ? 0 : undefined,
           tickfont: labels.length > 40 ? { size: 10 } : undefined,
         },
       }}

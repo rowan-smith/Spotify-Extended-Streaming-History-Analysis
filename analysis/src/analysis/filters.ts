@@ -6,13 +6,9 @@ import {
   WRAPPED_TOP_N,
 } from './filterPresets';
 
-/** Latest calendar year Spotify Wrapped would have published for. */
-export function getWrappedYear(bounds: FilterBounds, now = new Date()): number {
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
-  const wrappedYear = currentMonth >= 12 ? currentYear : currentYear - 1;
-
-  return Math.max(bounds.yearMin, Math.min(bounds.yearMax, wrappedYear));
+/** Latest year present in the user's streaming history. */
+export function getWrappedYear(bounds: FilterBounds): number {
+  return bounds.yearMax;
 }
 
 export function createDefaultFilters(yearMin: number, yearMax: number): AnalysisFilters {

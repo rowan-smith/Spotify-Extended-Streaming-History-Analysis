@@ -43,7 +43,7 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 function yearOptions(min: number, max: number): number[] {
   const years: number[] = [];
-  for (let year = min; year <= max; year += 1) {
+  for (let year = max; year >= min; year -= 1) {
     years.push(year);
   }
   return years;

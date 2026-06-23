@@ -55,6 +55,8 @@ describe('applyPreset', () => {
     const current = createDefaultFilters(2020, 2024);
     const result = applyPreset('wrapped', current, bounds);
     expect(result.preset).toBe('wrapped');
+    expect(result.yearFrom).toBe(2024);
+    expect(result.yearTo).toBe(2024);
     expect(result.includeMusic).toBe(true);
     expect(result.includePodcasts).toBe(false);
     expect(result.topN).toBe(WRAPPED_TOP_N);
@@ -68,23 +70,13 @@ describe('applyPreset', () => {
 });
 
 describe('getWrappedYear', () => {
-  it('returns previous year when current month is before December', () => {
-    const now = new Date('2024-06-01');
-    const result = getWrappedYear(bounds, now);
-    expect(result).toBe(2023);
+  it('returns the latest year in the data', () => {
+    expect(getWrappedYear(bounds)).toBe(2024);
   });
 
-  it('returns current year when current month is December', () => {
-    const now = new Date('2024-12-01');
-    const result = getWrappedYear(bounds, now);
-    expect(result).toBe(2024);
-  });
-
-  it('clamps to bounds', () => {
-    const now = new Date('2025-06-01');
-    const tightBounds: FilterBounds = { yearMin: 2020, yearMax: 2023 };
-    const result = getWrappedYear(tightBounds, now);
-    expect(result).toBe(2023);
+  it('returns yearMax when data spans a single year', () => {
+    const singleYearBounds: FilterBounds = { yearMin: 2022, yearMax: 2022 };
+    expect(getWrappedYear(singleYearBounds)).toBe(2022);
   });
 });
 

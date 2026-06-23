@@ -7,8 +7,10 @@ interface InfoTooltipProps {
   label?: string;
 }
 
+const INFO_ICON = '\u24D8';
+
 const triggerClassName =
-  'inline-grid place-items-center w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full border border-current/40 text-[0.5rem] font-bold italic cursor-help shrink-0 touch-manipulation';
+  'inline-flex items-center align-middle text-[0.85em] leading-none cursor-help shrink-0 touch-manipulation text-current/70';
 
 export function InfoTooltip({ text, label = 'More information' }: InfoTooltipProps) {
   const isTouchLike = useMediaQuery('(hover: none), (pointer: coarse)');
@@ -42,7 +44,7 @@ export function InfoTooltip({ text, label = 'More information' }: InfoTooltipPro
           aria-controls={tooltipId}
           onClick={() => setOpen((value) => !value)}
         >
-          i
+          {INFO_ICON}
         </button>
         {open ? (
           <span
@@ -70,7 +72,7 @@ export function InfoTooltip({ text, label = 'More information' }: InfoTooltipPro
             />
           }
         >
-          i
+          {INFO_ICON}
         </TooltipTrigger>
         <TooltipContent className="max-w-60">{text}</TooltipContent>
       </Tooltip>

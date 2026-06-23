@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { lineChart } from '../charts/plotHelpers';
+import { analysisForContentKind } from '../analysis/contentKindAnalysis';
 import { shouldShowPaceMetrics, effectiveRankingMetric, shouldShowYearlyTopBreakdown } from '../analysis/filters';
 import { getSummaryInsights } from '../analysis/insights';
 import { sortArtists, sortSongs } from '../analysis/aggregation';
@@ -25,6 +26,8 @@ import { SongsTab } from './tabs/SongsTab';
 import { ArtistsTab } from './tabs/ArtistsTab';
 import { AlbumsTab } from './tabs/AlbumsTab';
 import { DiscoverTab } from './tabs/DiscoverTab';
+import { PodcastsTab } from './tabs/PodcastsTab';
+import { AudiobooksTab } from './tabs/AudiobooksTab';
 import { FancyRankedListPanel } from './charts/FancyRankedListPanel';
 import { songsForArtist } from '../analysis/rankedListBreakdown';
 import { AnalysisUpdatingOverlay } from './charts/AnalysisUpdatingOverlay';
@@ -276,6 +279,18 @@ function DashboardContent({
   const { overview } = analysis;
   const years = analysis.availableYears;
   const topNLabel = analysis.topSongsByPlays.length;
+  const musicAnalysis = useMemo(
+    () => analysisForContentKind(analysis, 'music', topNLabel),
+    [analysis, topNLabel],
+  );
+  const podcastAnalysis = useMemo(
+    () => analysisForContentKind(analysis, 'podcast', topNLabel),
+    [analysis, topNLabel],
+  );
+  const audiobookAnalysis = useMemo(
+    () => analysisForContentKind(analysis, 'audiobook', topNLabel),
+    [analysis, topNLabel],
+  );
   const isCompact = useMediaQuery('(max-width: 640px)');
   const showMultiYearCharts = !filterContext.singleYear;
   const showYearlyTopBreakdown = shouldShowYearlyTopBreakdown(filterContext, years);
@@ -417,15 +432,45 @@ function DashboardContent({
   }
 
   if (activeTab === 'songs') {
-    return <SongsTab analysis={analysis} {...rankingTabProps} />;
+    return <SongsTab analysis={musicAnalysis} {...rankingTabProps} />;
   }
 
   if (activeTab === 'artists') {
-    return <ArtistsTab analysis={analysis} {...rankingTabProps} />;
+    return <ArtistsTab analysis={musicAnalysis} {...rankingTabProps} />;
   }
 
   if (activeTab === 'albums') {
-    return <AlbumsTab analysis={analysis} {...rankingTabProps} />;
+    return <AlbumsTab analysis={musicAnalysis} {...rankingTabProps} />;
+  }
+
+  if (activeTab === 'podcasts') {
+    return (
+      <PodcastsTab
+        analysis={podcastAnalysis}
+        topNLabel={topNLabel}
+        years={podcastAnalysis.availableYears}
+        showYearlyTopBreakdown={shouldShowYearlyTopBreakdown(filterContext, podcastAnalysis.availableYears)}
+        spanLabel={filterContext.spanLabel}
+        rankingMetric={rankingMetric}
+        theme={theme}
+        compact={isCompact}
+      />
+    );
+  }
+
+  if (activeTab === 'audiobooks') {
+    return (
+      <AudiobooksTab
+        analysis={audiobookAnalysis}
+        topNLabel={topNLabel}
+        years={audiobookAnalysis.availableYears}
+        showYearlyTopBreakdown={shouldShowYearlyTopBreakdown(filterContext, audiobookAnalysis.availableYears)}
+        spanLabel={filterContext.spanLabel}
+        rankingMetric={rankingMetric}
+        theme={theme}
+        compact={isCompact}
+      />
+    );
   }
 
   if (activeTab === 'habits') {
@@ -447,7 +492,7 @@ function DashboardContent({
   if (activeTab === 'discover') {
     return (
       <DiscoverTab
-        analysis={analysis}
+        analysis={musicAnalysis}
         topNLabel={topNLabel}
         theme={theme}
         compact={isCompact}
@@ -545,12 +590,14 @@ function DashboardContent({
 
   if (activeTab === 'browse') {
     const browseSongs = filters.combineRanking
-      ? analysis.combinedSongs
-      : sortSongs(analysis.allSongs, rankingMetric);
+      ? musicAnalysis.combinedSongs
+      : sortSongs(musicAnalysis.allSongs, rankingMetric);
     const browseArtists = filters.combineRanking
-      ? analysis.combinedArtists
-      : sortArtists(analysis.allArtists, rankingMetric);
-    const longestListens = [...analysis.records].sort((a, b) => b.msPlayed - a.msPlayed).slice(0, 100);
+      ? musicAnalysis.combinedArtists
+      : sortArtists(musicAnalysis.allArtists, rankingMetric);
+    const longestListens = [...musicAnalysis.records]
+      .sort((a, b) => b.msPlayed - a.msPlayed)
+      .slice(0, 100);
 
     return (
       <div className="grid gap-6">
@@ -587,7 +634,7 @@ function DashboardContent({
 
         <BrowseArtistsCard
           rows={browseArtists}
-          records={analysis.records}
+          records={musicAnalysis.records}
           combineRanking={filters.combineRanking}
           rankingMetric={rankingMetric}
           theme={theme}

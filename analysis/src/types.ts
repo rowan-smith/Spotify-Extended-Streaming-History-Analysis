@@ -243,6 +243,8 @@ export type TabId =
   | 'songs'
   | 'artists'
   | 'albums'
+  | 'podcasts'
+  | 'audiobooks'
   | 'timeline'
   | 'habits'
   | 'discover'

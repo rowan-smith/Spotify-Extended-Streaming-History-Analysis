@@ -6,7 +6,9 @@ export interface DashboardTab {
   description: string;
 }
 
-const HIDDEN_WHEN_NO_MUSIC: TabId[] = ['albums', 'discover'];
+const MUSIC_ONLY_TABS: TabId[] = ['songs', 'artists', 'albums', 'discover', 'browse'];
+const PODCAST_ONLY_TABS: TabId[] = ['podcasts'];
+const AUDIOBOOK_ONLY_TABS: TabId[] = ['audiobooks'];
 
 export const DASHBOARD_TABS: DashboardTab[] = [
   {
@@ -30,6 +32,16 @@ export const DASHBOARD_TABS: DashboardTab[] = [
     description: 'Album metrics and top albums by plays or playtime; Wrapped mode uses the global toggle.',
   },
   {
+    id: 'podcasts',
+    label: 'Podcasts',
+    description: 'Top podcast episodes and shows by plays or playtime.',
+  },
+  {
+    id: 'audiobooks',
+    label: 'Audiobooks',
+    description: 'Audiobook metrics and your most-listened titles.',
+  },
+  {
     id: 'timeline',
     label: 'Over time',
     description: 'How your listening changed day by day and year by year.',
@@ -51,47 +63,22 @@ export const DASHBOARD_TABS: DashboardTab[] = [
   },
 ];
 
-function includesNonMusicContent(filters: AnalysisFilters): boolean {
-  return filters.includePodcasts || filters.includeAudiobooks;
+function isTabVisible(tabId: TabId, filters: AnalysisFilters, isWrappedMode: boolean): boolean {
+  if (MUSIC_ONLY_TABS.includes(tabId)) {
+    return isWrappedMode || filters.includeMusic;
+  }
+  if (PODCAST_ONLY_TABS.includes(tabId)) {
+    return !isWrappedMode && filters.includePodcasts;
+  }
+  if (AUDIOBOOK_ONLY_TABS.includes(tabId)) {
+    return !isWrappedMode && filters.includeAudiobooks;
+  }
+  return true;
 }
 
 export function getVisibleDashboardTabs(
   filters: AnalysisFilters,
   isWrappedMode: boolean,
 ): DashboardTab[] {
-  const visible = DASHBOARD_TABS.filter((tab) => {
-    if (isWrappedMode || filters.includeMusic) {
-      return true;
-    }
-    return !HIDDEN_WHEN_NO_MUSIC.includes(tab.id);
-  });
-
-  if (isWrappedMode || !includesNonMusicContent(filters)) {
-    return visible;
-  }
-
-  return visible.map((tab) => {
-    if (tab.id === 'songs') {
-      return {
-        ...tab,
-        label: 'Tracks',
-        description:
-          'Metrics and top items by plays or playtime — songs, podcast episodes, and audiobooks.',
-      };
-    }
-    if (tab.id === 'artists') {
-      return {
-        ...tab,
-        description:
-          'Artists, podcast shows, and other creators ranked by plays or playtime.',
-      };
-    }
-    if (tab.id === 'browse') {
-      return {
-        ...tab,
-        description: 'Search and sort every track and creator in your filter range.',
-      };
-    }
-    return tab;
-  });
+  return DASHBOARD_TABS.filter((tab) => isTabVisible(tab.id, filters, isWrappedMode));
 }

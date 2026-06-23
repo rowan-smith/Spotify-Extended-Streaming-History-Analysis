@@ -179,7 +179,9 @@ export function FilterBar({
             </label>
 
             {filters.preset !== 'wrapped' ? (
-              <MetricTabs
+              <>
+                <span className="hidden sm:block w-px h-6 bg-border shrink-0" aria-hidden="true" />
+                <MetricTabs
                 active={filters.rankingMetric}
                 onChange={(value: RankingMetric) =>
                   update({ ...filters, rankingMetric: value })
@@ -187,6 +189,7 @@ export function FilterBar({
                 playsInfo={PLAYS_VS_TIME_INFO.plays}
                 timeInfo={PLAYS_VS_TIME_INFO.time}
               />
+              </>
             ) : null}
           </div>
 

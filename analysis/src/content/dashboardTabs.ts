@@ -15,17 +15,17 @@ export const DASHBOARD_TABS: DashboardTab[] = [
   {
     id: 'songs',
     label: 'Songs',
-    description: 'Song metrics, top tracks by plays or playtime, and yearly drill-down.',
+    description: 'Song metrics and top tracks for your filtered date range.',
   },
   {
     id: 'artists',
     label: 'Artists',
-    description: 'Artist metrics, top artists by plays or playtime, and yearly drill-down.',
+    description: 'Artist metrics and top artists for your filtered date range.',
   },
   {
     id: 'albums',
     label: 'Albums',
-    description: 'Album metrics, top albums by plays or playtime, and yearly drill-down.',
+    description: 'Album metrics and top albums for your filtered date range.',
   },
   {
     id: 'timeline',

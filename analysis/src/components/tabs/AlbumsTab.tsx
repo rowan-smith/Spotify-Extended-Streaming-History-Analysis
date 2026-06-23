@@ -14,7 +14,8 @@ interface AlbumsTabProps {
   analysis: AnalysisResult;
   topNLabel: number;
   years: number[];
-  showMultiYearCharts: boolean;
+  showYearlyTopBreakdown: boolean;
+  spanLabel: string;
   rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
@@ -24,7 +25,8 @@ export function AlbumsTab({
   analysis,
   topNLabel,
   years,
-  showMultiYearCharts,
+  showYearlyTopBreakdown,
+  spanLabel,
   rankingMetric,
   theme,
   compact,
@@ -111,14 +113,16 @@ export function AlbumsTab({
         }
       />
 
-      {showMultiYearCharts ? (
+      {showYearlyTopBreakdown ? (
         <YearDrilldownChart
-          title="Top albums by year"
+          title="Top album by year"
           years={years}
+          spanLabel={spanLabel}
           dataByPlays={analysis.topAlbumsByYear}
           dataByTime={analysis.topAlbumsByYearByTime}
           labelKey="albumName"
           rankingMetric={rankingMetric}
+          records={analysis.records}
           theme={theme}
           compact={compact}
         />

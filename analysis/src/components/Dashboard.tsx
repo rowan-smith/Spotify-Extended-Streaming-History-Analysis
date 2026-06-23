@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { lineChart } from '../charts/plotHelpers';
-import { shouldShowPaceMetrics, effectiveRankingMetric } from '../analysis/filters';
+import { shouldShowPaceMetrics, effectiveRankingMetric, shouldShowYearlyTopBreakdown } from '../analysis/filters';
 import { sortArtists, sortSongs } from '../analysis/aggregation';
 import { formatDuration, formatHours, formatLocalDate, formatLocalDateTime } from '../utils/formatting';
 import { METRIC_INFO } from '../content/siteContent';
@@ -314,13 +314,16 @@ export function Dashboard({
   const topNLabel = analysis.topSongsByPlays.length;
   const isCompact = useMediaQuery('(max-width: 640px)');
   const showMultiYearCharts = !filterContext.singleYear;
+  const showYearlyTopBreakdown = shouldShowYearlyTopBreakdown(filterContext, years);
   const rankingMetric = effectiveRankingMetric(filters);
 
   if (activeTab === 'summary') {
     return (
       <div className="grid gap-6">
         <section>
-          <h3 className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">At a glance</h3>
+          <h3 className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">
+            At a glance
+          </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 min-w-0">
             <StatCard
               variant="hero"
@@ -424,7 +427,8 @@ export function Dashboard({
         analysis={analysis}
         topNLabel={topNLabel}
         years={years}
-        showMultiYearCharts={showMultiYearCharts}
+        showYearlyTopBreakdown={showYearlyTopBreakdown}
+        spanLabel={filterContext.spanLabel}
         rankingMetric={rankingMetric}
         theme={theme}
         compact={isCompact}
@@ -438,7 +442,8 @@ export function Dashboard({
         analysis={analysis}
         topNLabel={topNLabel}
         years={years}
-        showMultiYearCharts={showMultiYearCharts}
+        showYearlyTopBreakdown={showYearlyTopBreakdown}
+        spanLabel={filterContext.spanLabel}
         rankingMetric={rankingMetric}
         theme={theme}
         compact={isCompact}
@@ -452,7 +457,8 @@ export function Dashboard({
         analysis={analysis}
         topNLabel={topNLabel}
         years={years}
-        showMultiYearCharts={showMultiYearCharts}
+        showYearlyTopBreakdown={showYearlyTopBreakdown}
+        spanLabel={filterContext.spanLabel}
         rankingMetric={rankingMetric}
         theme={theme}
         compact={isCompact}
@@ -469,7 +475,7 @@ export function Dashboard({
           analysis={analysis}
           rankingMetric={rankingMetric}
           theme={theme}
-          showMultiYearCharts={showMultiYearCharts}
+          showYearlyTopBreakdown={showYearlyTopBreakdown}
         />
       </div>
     );
@@ -538,7 +544,7 @@ export function Dashboard({
           pointsValueLabel={dailyValueLabel}
         />
 
-        {showMultiYearCharts && rankingMetric === 'time' ? (
+        {showYearlyTopBreakdown && rankingMetric === 'time' ? (
           <PlotlyCard
             title="Playtime by month across your history"
             data={[
@@ -571,23 +577,27 @@ export function Dashboard({
 
     return (
       <div className="grid gap-6">
-        <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-          <Checkbox
-            checked={filters.combineRanking}
-            onChange={(event) =>
-              onFiltersChange({ ...filters, combineRanking: event.target.checked })
-            }
-          />
-          <span className="flex items-center gap-1">
-            Combined ranking
-            <InfoTooltip text={FILTER_OPTION_INFO.combineRanking} />
-          </span>
-        </label>
+        {filters.preset !== 'wrapped' ? (
+          <>
+            <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+              <Checkbox
+                checked={filters.combineRanking}
+                onChange={(event) =>
+                  onFiltersChange({ ...filters, combineRanking: event.target.checked })
+                }
+              />
+              <span className="flex items-center gap-1">
+                Combined ranking
+                <InfoTooltip text={FILTER_OPTION_INFO.combineRanking} />
+              </span>
+            </label>
 
-        {filters.combineRanking ? (
-          <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted px-4 py-3">
-            Combined ranking balances play count and total playtime (50/50).
-          </p>
+            {filters.combineRanking ? (
+              <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted px-4 py-3">
+                Combined ranking balances play count and total playtime (50/50).
+              </p>
+            ) : null}
+          </>
         ) : null}
 
         <BrowseSongsCard

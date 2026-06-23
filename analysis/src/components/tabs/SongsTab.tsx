@@ -14,7 +14,8 @@ interface SongsTabProps {
   analysis: AnalysisResult;
   topNLabel: number;
   years: number[];
-  showMultiYearCharts: boolean;
+  showYearlyTopBreakdown: boolean;
+  spanLabel: string;
   rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
@@ -24,7 +25,8 @@ export function SongsTab({
   analysis,
   topNLabel,
   years,
-  showMultiYearCharts,
+  showYearlyTopBreakdown,
+  spanLabel,
   rankingMetric,
   theme,
   compact,
@@ -111,10 +113,11 @@ export function SongsTab({
         }
       />
 
-      {showMultiYearCharts ? (
+      {showYearlyTopBreakdown ? (
         <YearDrilldownChart
-          title="Top songs by year"
+          title="Top song by year"
           years={years}
+          spanLabel={spanLabel}
           dataByPlays={analysis.topSongsByYear}
           dataByTime={analysis.topSongsByYearByTime}
           labelKey="trackName"

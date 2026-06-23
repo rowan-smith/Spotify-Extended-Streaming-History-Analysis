@@ -1,37 +1,83 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import type { Theme } from '../../hooks/useTheme';
 import { formatHours } from '../../utils/formatting';
-import type { AlbumStats, ArtistStats, RankingMetric, SongStats } from '../../types';
-import { Select } from '@/components/ui/select';
-import { MobileRankedList } from './MobileRankedList';
+import type { AlbumStats, ArtistStats, RankingMetric, SongStats, StreamRecord } from '../../types';
 import { RankedBarPlot } from './RankedBarPlot';
 import { VisualizationShell } from './VisualizationShell';
 import { DataTable } from '../DataTable';
+import { YearTopExpandableTable } from './YearTopExpandableTable';
 import { useVisualizationView } from '@/hooks/useVisualizationView';
+import {
+  buildYearTopEntries,
+  buildYearTopSongBreakdowns,
+  metricValueForEntry,
+  YEAR_TOP_ENTITY_LABELS,
+  type YearTopLabelKey,
+} from './yearTopBreakdown';
 
 interface YearDrilldownChartProps {
   title: string;
   years: number[];
+  spanLabel: string;
   dataByPlays: Record<number, SongStats[] | ArtistStats[] | AlbumStats[]>;
   dataByTime: Record<number, SongStats[] | ArtistStats[] | AlbumStats[]>;
-  labelKey: 'trackName' | 'artistName' | 'albumName';
+  labelKey: YearTopLabelKey;
   rankingMetric: RankingMetric;
+  records?: StreamRecord[];
   theme: Theme;
   compact: boolean;
+}
+
+function YearTopList({
+  entries,
+  metricLabel,
+}: {
+  entries: ReturnType<typeof buildYearTopEntries>;
+  metricLabel: string;
+}) {
+  return (
+    <div className="divide-y divide-border" role="list">
+      {entries.map((entry) => (
+        <article
+          key={entry.year}
+          className="flex items-start gap-4 py-3 first:pt-0 last:pb-0"
+          role="listitem"
+        >
+          <span className="shrink-0 w-12 text-sm font-bold tabular-nums text-muted-foreground">
+            {entry.year}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold break-words">{entry.name}</p>
+            {entry.detail ? (
+              <p className="text-xs text-muted-foreground break-words">{entry.detail}</p>
+            ) : null}
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-sm font-bold tabular-nums">
+              {metricLabel === 'Plays'
+                ? entry.plays.toLocaleString()
+                : formatHours(entry.hours)}
+            </p>
+            <p className="text-xs text-muted-foreground">{metricLabel}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 export function YearDrilldownChart({
   title,
   years,
+  spanLabel,
   dataByPlays,
   dataByTime,
   labelKey,
   rankingMetric,
+  records,
   theme,
   compact,
 }: YearDrilldownChartProps) {
-  const defaultYear = years[years.length - 1] ?? new Date().getFullYear();
-  const [year, setYear] = useState(defaultYear);
   const {
     viewMode,
     setViewMode,
@@ -39,159 +85,122 @@ export function YearDrilldownChart({
     setChartZoomed,
     plotRef,
     resetChartView,
-  } = useVisualizationView(compact);
+  } = useVisualizationView(compact, 'table');
 
-  const rows = (rankingMetric === 'plays' ? dataByPlays[year] : dataByTime[year]) ?? [];
+  const entity = YEAR_TOP_ENTITY_LABELS[labelKey];
+  const metricLabel = rankingMetric === 'plays' ? 'Plays' : 'Hours';
 
-  const labels = rows.map((row) => {
-    if (labelKey === 'trackName') {
-      return (row as SongStats).trackName;
-    }
-    if (labelKey === 'artistName') {
-      return (row as ArtistStats).artistName;
-    }
-    return (row as AlbumStats).albumName;
-  });
+  const entries = useMemo(
+    () =>
+      buildYearTopEntries(
+        years,
+        rankingMetric === 'plays' ? dataByPlays : dataByTime,
+        labelKey,
+      ),
+    [years, dataByPlays, dataByTime, labelKey, rankingMetric],
+  );
 
-  const values = rows.map((row) => {
-    if (rankingMetric === 'plays') {
-      return 'numPlays' in row ? row.numPlays : row.listenCount;
-    }
-    return row.totalHours;
-  });
+  const chartLabels = useMemo(() => entries.map((entry) => entry.name), [entries]);
+  const chartYears = useMemo(() => entries.map((entry) => String(entry.year)), [entries]);
+  const chartValues = useMemo(
+    () => entries.map((entry) => metricValueForEntry(entry, rankingMetric)),
+    [entries, rankingMetric],
+  );
+  const chartHover = useMemo(
+    () =>
+      entries.map((entry) => {
+        const metricText =
+          rankingMetric === 'plays'
+            ? `${entry.plays.toLocaleString()} plays`
+            : `${formatHours(entry.hours)} total`;
+        const detail = entry.detail ? `<br>${entry.detail}` : '';
+        return `${entry.year}${detail}<br>${metricText}`;
+      }),
+    [entries, rankingMetric],
+  );
 
-  const hover = rows.map((row) => {
-    const label = (() => {
-      if (labelKey === 'trackName') return (row as SongStats).trackName;
-      if (labelKey === 'artistName') return (row as ArtistStats).artistName;
-      return (row as AlbumStats).albumName;
-    })();
+  const songBreakdowns = useMemo(
+    () =>
+      records
+        ? buildYearTopSongBreakdowns(entries, records, labelKey, rankingMetric)
+        : new Map<string, SongStats[]>(),
+    [entries, records, labelKey, rankingMetric],
+  );
 
-    if (rankingMetric === 'plays') {
-      return `${label}<br>${formatHours(row.totalHours)} total`;
-    }
+  const useExpandableTable =
+    records != null && (labelKey === 'albumName' || labelKey === 'artistName');
 
-    const plays = 'numPlays' in row ? row.numPlays : row.listenCount;
-    return `${label}<br>${plays.toLocaleString()} plays`;
-  });
+  if (entries.length === 0) {
+    return null;
+  }
 
-  const mobileItems = rows.map((row) => {
-    const primary = (() => {
-      if (labelKey === 'trackName') return (row as SongStats).trackName;
-      if (labelKey === 'artistName') return (row as ArtistStats).artistName;
-      return (row as AlbumStats).albumName;
-    })();
-
-    const plays = 'numPlays' in row ? row.numPlays : row.listenCount;
-
-    return {
-      primary,
-      value: rankingMetric === 'plays' ? plays : row.totalHours,
-      valueText:
-        rankingMetric === 'plays'
-          ? plays.toLocaleString()
-          : formatHours(row.totalHours),
-      meta:
-        rankingMetric === 'plays'
-          ? `${formatHours(row.totalHours)} total`
-          : `${plays.toLocaleString()} plays`,
-    };
-  });
+  const showArtistColumn = labelKey === 'trackName' || labelKey === 'albumName';
 
   return (
     <VisualizationShell
       title={title}
-      subtitle="Pick a year to explore yearly rankings."
+      subtitle={`Top ${entity.singular} each year in ${spanLabel}, ranked by ${rankingMetric === 'plays' ? 'play count' : 'playtime'}.`}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       chartZoomed={chartZoomed}
       onChartReset={resetChartView}
     >
-      <div className="flex items-center gap-2">
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>Year</span>
-          <Select value={year} onChange={(event) => setYear(Number(event.target.value))}>
-            {years.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
-        </label>
-      </div>
-
       {viewMode === 'chart' ? (
         <RankedBarPlot
           ref={plotRef}
-          labels={labels}
-          values={values}
-          hover={hover}
-          xTitle={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
+          labels={chartLabels}
+          categoryLabels={chartYears}
+          yTitle="Year"
+          values={chartValues}
+          hover={chartHover}
+          xTitle={metricLabel}
           theme={theme}
           compact={compact}
           onZoomChange={setChartZoomed}
         />
       ) : null}
 
-      {viewMode === 'grid' ? (
-        <MobileRankedList
-          metricLabel={rankingMetric === 'plays' ? 'Plays' : 'Hours'}
-          items={mobileItems}
-        />
-      ) : null}
+      {viewMode === 'grid' ? <YearTopList entries={entries} metricLabel={metricLabel} /> : null}
 
-      {viewMode === 'table' && labelKey === 'trackName' ? (
-        <DataTable
-          rows={rows as SongStats[]}
-          rowKey={(row) => `${row.trackName}-${row.artistName}`}
-          columns={[
-            { key: 'trackName', label: 'Track' },
-            { key: 'artistName', label: 'Artist' },
-            { key: 'numPlays', label: 'Plays', align: 'right' },
-            {
-              key: 'totalHours',
-              label: 'Playtime',
-              align: 'right',
-              render: (row) => formatHours(row.totalHours),
-            },
-          ]}
-          searchPlaceholder="Search rankings…"
-        />
-      ) : null}
-      {viewMode === 'table' && labelKey === 'artistName' ? (
-        <DataTable
-          rows={rows as ArtistStats[]}
-          rowKey={(row) => row.artistName}
-          columns={[
-            { key: 'artistName', label: 'Artist' },
-            { key: 'listenCount', label: 'Plays', align: 'right' },
-            {
-              key: 'totalHours',
-              label: 'Playtime',
-              align: 'right',
-              render: (row) => formatHours(row.totalHours),
-            },
-          ]}
-          searchPlaceholder="Search rankings…"
-        />
-      ) : null}
-      {viewMode === 'table' && labelKey === 'albumName' ? (
-        <DataTable
-          rows={rows as AlbumStats[]}
-          rowKey={(row) => `${row.albumName}-${row.artistName}`}
-          columns={[
-            { key: 'albumName', label: 'Album' },
-            { key: 'artistName', label: 'Artist' },
-            { key: 'numPlays', label: 'Plays', align: 'right' },
-            {
-              key: 'totalHours',
-              label: 'Playtime',
-              align: 'right',
-              render: (row) => formatHours(row.totalHours),
-            },
-          ]}
-          searchPlaceholder="Search rankings…"
-        />
+      {viewMode === 'table' ? (
+        useExpandableTable ? (
+          <YearTopExpandableTable
+            entries={entries}
+            labelKey={labelKey}
+            songBreakdowns={songBreakdowns}
+          />
+        ) : (
+          <DataTable
+            rows={entries}
+            rowKey={(row) => String(row.year)}
+            columns={[
+              { key: 'year', label: 'Year', align: 'right' },
+              { key: 'name', label: entity.column },
+              ...(showArtistColumn
+                ? [
+                    {
+                      key: 'detail' as const,
+                      label: 'Artist',
+                      render: (row: (typeof entries)[number]) => row.detail ?? '—',
+                    },
+                  ]
+                : []),
+              {
+                key: 'plays',
+                label: 'Plays',
+                align: 'right' as const,
+                render: (row) => row.plays.toLocaleString(),
+              },
+              {
+                key: 'hours',
+                label: 'Playtime',
+                align: 'right' as const,
+                render: (row) => formatHours(row.hours),
+              },
+            ]}
+            searchPlaceholder="Filter years…"
+          />
+        )
       ) : null}
     </VisualizationShell>
   );

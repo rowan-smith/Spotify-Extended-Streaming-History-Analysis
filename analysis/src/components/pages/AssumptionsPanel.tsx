@@ -18,7 +18,7 @@ export function AssumptionsPanel({ variant = 'page' }: AssumptionsPanelProps) {
   );
 
   const list = (
-    <dl className="space-y-3">
+    <dl className="grid gap-3 md:grid-cols-2">
       {ASSUMPTIONS.map((item) => (
         <Card key={item.title}>
           <CardContent className="p-4">

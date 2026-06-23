@@ -54,37 +54,46 @@ export function horizontalBarChart(
   values: number[],
   hoverText?: string[],
   xTitle = 'Count',
-  options?: { inlineLabels?: boolean; accent?: string },
+  options?: { inlineLabels?: boolean; accent?: string; categoryLabels?: string[] },
 ): Partial<PlotData> {
   const inlineLabels = options?.inlineLabels ?? false;
+  const categoryLabels = options?.categoryLabels;
+  const hasCategories = categoryLabels != null && categoryLabels.length > 0;
   const reversedLabels = [...labels].reverse();
   const reversedValues = [...values].reverse();
   const reversedHover = hoverText ? [...hoverText].reverse() : undefined;
+  const reversedCategories = hasCategories ? [...categoryLabels].reverse() : null;
+  const useInsideBarText = inlineLabels || hasCategories;
 
-  if (inlineLabels) {
+  if (useInsideBarText) {
+    const yValues = reversedCategories ?? reversedLabels;
+    const insideText = reversedLabels;
+
     return {
       type: 'bar',
       orientation: 'h',
-      y: reversedLabels,
+      y: yValues,
       x: reversedValues,
-      text: reversedLabels,
+      text: insideText,
       textposition: 'inside',
       insidetextanchor: 'start',
       textangle: 0,
       constraintext: 'inside',
       cliponaxis: false,
       textfont: { color: '#08140c', size: 11 },
-      hovertext: reversedHover ?? reversedLabels,
+      hovertext: reversedHover ?? insideText,
       hovertemplate: '%{hovertext}<br>%{x}<extra></extra>',
       marker: { color: options?.accent ?? '#1db954' },
       name: xTitle,
     };
   }
 
+  const yValues = reversedCategories ?? reversedLabels;
+
   return {
     type: 'bar',
     orientation: 'h',
-    y: reversedLabels,
+    y: yValues,
     x: reversedValues,
     text: reversedHover,
     hovertemplate: hoverText

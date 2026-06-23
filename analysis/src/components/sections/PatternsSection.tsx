@@ -13,14 +13,14 @@ interface PatternsSectionProps {
   analysis: AnalysisResult;
   rankingMetric: RankingMetric;
   theme: Theme;
-  showMultiYearCharts: boolean;
+  showYearlyTopBreakdown: boolean;
 }
 
 export function PatternsSection({
   analysis,
   rankingMetric,
   theme,
-  showMultiYearCharts,
+  showYearlyTopBreakdown,
 }: PatternsSectionProps) {
   const monthlyHistoryPoints = useMemo<TimelinePoint[]>(
     () =>
@@ -99,7 +99,7 @@ export function PatternsSection({
         </>
       ) : null}
 
-      {showMultiYearCharts && analysis.monthlyHistoryByYear.length > 1 ? (
+      {showYearlyTopBreakdown ? (
         <PlotlyCard
           title="Listening history over the years"
           subtitle="Monthly playtime by calendar year. Each line is one year in your filtered data."

@@ -15,7 +15,7 @@ export function DataHandlingPage({ onBack, backLabel = 'Back to home' }: DataHan
       title="Data handling"
       intro="How this site treats your Spotify export files and what leaves your device."
     >
-      <dl className="space-y-3">
+      <dl className="grid gap-3 md:grid-cols-2">
         {DATA_HANDLING_SECTIONS.map((section) => (
           <Card key={section.title}>
             <CardContent className="p-4">

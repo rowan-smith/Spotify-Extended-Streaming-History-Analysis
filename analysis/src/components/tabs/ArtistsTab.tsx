@@ -14,7 +14,8 @@ interface ArtistsTabProps {
   analysis: AnalysisResult;
   topNLabel: number;
   years: number[];
-  showMultiYearCharts: boolean;
+  showYearlyTopBreakdown: boolean;
+  spanLabel: string;
   rankingMetric: RankingMetric;
   theme: Theme;
   compact: boolean;
@@ -24,7 +25,8 @@ export function ArtistsTab({
   analysis,
   topNLabel,
   years,
-  showMultiYearCharts,
+  showYearlyTopBreakdown,
+  spanLabel,
   rankingMetric,
   theme,
   compact,
@@ -111,14 +113,16 @@ export function ArtistsTab({
         }
       />
 
-      {showMultiYearCharts ? (
+      {showYearlyTopBreakdown ? (
         <YearDrilldownChart
-          title="Top artists by year"
+          title="Top artist by year"
           years={years}
+          spanLabel={spanLabel}
           dataByPlays={analysis.topArtistsByYear}
           dataByTime={analysis.topArtistsByYearByTime}
           labelKey="artistName"
           rankingMetric={rankingMetric}
+          records={analysis.records}
           theme={theme}
           compact={compact}
         />

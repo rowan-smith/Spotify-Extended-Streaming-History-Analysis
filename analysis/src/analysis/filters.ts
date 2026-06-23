@@ -308,6 +308,14 @@ export function shouldShowPaceMetrics(filters: AnalysisFilters): boolean {
   return filters.yearFrom === currentYear && filters.yearTo === currentYear;
 }
 
+/** Year-by-year #1 breakdowns only make sense across multiple calendar years. */
+export function shouldShowYearlyTopBreakdown(
+  filterContext: FilterContext,
+  availableYears: number[],
+): boolean {
+  return !filterContext.singleYear && availableYears.length > 1;
+}
+
 export function markCustomPreset(filters: AnalysisFilters): AnalysisFilters {
   if (filters.preset === 'custom') {
     return filters;

@@ -9,6 +9,7 @@ import {
   markCustomPreset,
   applyQuickYearRange,
   getFilterContext,
+  shouldShowYearlyTopBreakdown,
 } from '../../analysis/src/analysis/filters';
 import { DEFAULT_TOP_N, WRAPPED_TOP_N } from '../../analysis/src/analysis/filterPresets';
 import type { FilterBounds, StreamRecord } from '../../analysis/src/types';
@@ -259,5 +260,22 @@ describe('getFilterContext', () => {
     expect(ctx.singleYear).toBe(false);
     expect(ctx.multiYear).toBe(true);
     expect(ctx.spanLabel).toBe('2022–2024');
+  });
+});
+
+describe('shouldShowYearlyTopBreakdown', () => {
+  it('is hidden for a single-year filter', () => {
+    const filters = createDefaultFilters(2024, 2024);
+    expect(shouldShowYearlyTopBreakdown(getFilterContext(filters), [2024])).toBe(false);
+  });
+
+  it('is shown for a multi-year filter with multiple years of data', () => {
+    const filters = createDefaultFilters(2022, 2024);
+    expect(shouldShowYearlyTopBreakdown(getFilterContext(filters), [2022, 2023, 2024])).toBe(true);
+  });
+
+  it('is hidden when the filter spans years but only one year has data', () => {
+    const filters = createDefaultFilters(2020, 2024);
+    expect(shouldShowYearlyTopBreakdown(getFilterContext(filters), [2024])).toBe(false);
   });
 });

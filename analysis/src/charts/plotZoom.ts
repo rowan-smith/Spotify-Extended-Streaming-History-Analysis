@@ -1,4 +1,4 @@
-import type { PlotRelayoutEvent } from 'plotly.js-dist-min';
+import type { Layout, PlotRelayoutEvent } from 'plotly.js-dist-min';
 
 export function isPlotZoomed(event: PlotRelayoutEvent): boolean {
   if (event['xaxis.autorange'] === true || event['yaxis.autorange'] === true) {
@@ -6,15 +6,17 @@ export function isPlotZoomed(event: PlotRelayoutEvent): boolean {
   }
 
   return (
-    Array.isArray(event['xaxis.range']) ||
-    Array.isArray(event['yaxis.range']) ||
-    Object.keys(event).some((key) => key.endsWith('.range'))
+    event['xaxis.range[0]'] !== undefined ||
+    event['xaxis.range[1]'] !== undefined ||
+    event['yaxis.range[0]'] !== undefined ||
+    event['yaxis.range[1]'] !== undefined ||
+    Object.keys(event).some((key) => key.includes('.range'))
   );
 }
 
-export function plotAutorangeUpdate(): Record<string, boolean> {
+export function plotAutorangeUpdate(): Partial<Layout> {
   return {
-    'xaxis.autorange': true,
-    'yaxis.autorange': true,
+    xaxis: { autorange: true },
+    yaxis: { autorange: true },
   };
 }

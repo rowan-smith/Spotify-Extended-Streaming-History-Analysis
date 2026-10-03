@@ -1,4 +1,4 @@
-import type { Layout, PlotData } from 'plotly.js-dist-min';
+import type { Data, Layout } from 'plotly.js-dist-min';
 import type { YearSeries } from '../types';
 
 export function getPlotTheme(isDark: boolean) {
@@ -55,7 +55,7 @@ export function horizontalBarChart(
   hoverText?: string[],
   xTitle = 'Count',
   options?: { inlineLabels?: boolean; accent?: string; categoryLabels?: string[] },
-): Partial<PlotData> {
+): Data {
   const inlineLabels = options?.inlineLabels ?? false;
   const categoryLabels = options?.categoryLabels;
   const hasCategories = categoryLabels != null && categoryLabels.length > 0;
@@ -110,7 +110,7 @@ export function lineChart(
   hoverText?: string[],
   yTitle = 'Count',
   accent = '#1db954',
-): Partial<PlotData> {
+): Data {
   return {
     type: 'scatter',
     mode: 'lines+markers',
@@ -132,7 +132,7 @@ export function verticalBarChart(
   hoverText?: string[],
   yTitle = 'Count',
   accent = '#1db954',
-): Partial<PlotData> {
+): Data {
   return {
     type: 'bar',
     x: labels,
@@ -146,7 +146,7 @@ export function verticalBarChart(
   };
 }
 
-export function multiYearLineSeries(series: YearSeries[], yTitle = 'Hours'): Partial<PlotData>[] {
+export function multiYearLineSeries(series: YearSeries[], yTitle = 'Hours'): Data[] {
   return series.map((entry, index) => ({
     type: 'scatter',
     mode: 'lines+markers',

@@ -34,7 +34,7 @@
     "@types/react-plotly.js": "^2.6.4",
     "@vitejs/plugin-react": "^6.0.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16",
+    "vite": "^8.3.5",
     "vitest": "^4.1.11"
   },
   "allowScripts": {
